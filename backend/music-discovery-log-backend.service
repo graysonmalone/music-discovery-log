@@ -1,0 +1,14 @@
+[Unit]
+Description=Music Discovery Log Go Backend
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/var/www/music-discovery-log/backend
+ExecStart=/var/www/music-discovery-log/backend/music-discovery-log-backend
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

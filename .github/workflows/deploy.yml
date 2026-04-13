@@ -1,0 +1,125 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── Frontend ────────────────────────────────────────────────
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install and build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      # ── Backend ─────────────────────────────────────────────────
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build backend
+        run: |
+          cd backend
+          GOOS=linux GOARCH=amd64 go build -o music-discovery-log-backend .
+
+      # ── Deploy ──────────────────────────────────────────────────
+      - name: Write SSH key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > deploy_key
+          chmod 600 deploy_key
+
+      - name: Create directories on server
+        run: |
+          ssh -i deploy_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.LIGHTSAIL_HOST }} \
+            "sudo mkdir -p /var/www/music-discovery-log/frontend/dist /var/www/music-discovery-log/backend && \
+             sudo chown -R ubuntu:ubuntu /var/www/music-discovery-log"
+
+      - name: Copy frontend build
+        run: |
+          rsync -az --delete \
+            -e "ssh -i deploy_key -o StrictHostKeyChecking=no" \
+            frontend/dist/ \
+            ubuntu@${{ secrets.LIGHTSAIL_HOST }}:/var/www/music-discovery-log/frontend/dist/
+
+      - name: Copy backend binary
+        run: |
+          scp -i deploy_key -o StrictHostKeyChecking=no \
+            backend/music-discovery-log-backend \
+            ubuntu@${{ secrets.LIGHTSAIL_HOST }}:/var/www/music-discovery-log/backend/music-discovery-log-backend
+
+      - name: Copy systemd service file
+        run: |
+          scp -i deploy_key -o StrictHostKeyChecking=no \
+            backend/music-discovery-log-backend.service \
+            ubuntu@${{ secrets.LIGHTSAIL_HOST }}:/tmp/music-discovery-log-backend.service
+
+      - name: Install service, update Nginx, restart
+        run: |
+          ssh -i deploy_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.LIGHTSAIL_HOST }} bash << 'EOF'
+            set -e
+
+            # Install systemd service
+            sudo mv /tmp/music-discovery-log-backend.service /etc/systemd/system/music-discovery-log-backend.service
+            sudo chmod +x /var/www/music-discovery-log/backend/music-discovery-log-backend
+
+            # Update Nginx config
+            sudo tee /etc/nginx/sites-available/music-discovery-log > /dev/null << 'NGINX'
+server {
+    listen 80;
+    server_name grayson-webdev.org www.grayson-webdev.org;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name grayson-webdev.org www.grayson-webdev.org;
+
+    ssl_certificate /etc/letsencrypt/live/grayson-webdev.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/grayson-webdev.org/privkey.pem;
+
+    root /var/www/music-discovery-log/frontend/dist;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api {
+        proxy_pass http://localhost:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+NGINX
+
+            # Swap the enabled site
+            sudo ln -sf /etc/nginx/sites-available/music-discovery-log /etc/nginx/sites-enabled/music-discovery-log
+            sudo rm -f /etc/nginx/sites-enabled/hello-world
+
+            # Reload systemd and restart backend
+            sudo systemctl daemon-reload
+            sudo systemctl enable music-discovery-log-backend
+            sudo systemctl restart music-discovery-log-backend
+
+            # Reload Nginx
+            sudo nginx -t
+            sudo systemctl reload nginx
+          EOF
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f deploy_key
