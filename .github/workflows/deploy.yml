@@ -41,11 +41,12 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > deploy_key
           chmod 600 deploy_key
 
-      - name: Create directories on server
+      - name: Create directories and stop service
         run: |
           ssh -i deploy_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.LIGHTSAIL_HOST }} \
             "sudo mkdir -p /var/www/music-discovery-log/frontend/dist /var/www/music-discovery-log/backend && \
-             sudo chown -R ubuntu:ubuntu /var/www/music-discovery-log"
+             sudo chown -R ubuntu:ubuntu /var/www/music-discovery-log && \
+             sudo systemctl stop music-discovery-log-backend || true"
 
       - name: Copy frontend build
         run: |
