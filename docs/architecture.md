@@ -36,6 +36,17 @@ JWT tokens are stored in localStorage and attached as `Authorization: Bearer <to
 | `/collection/:id`  | EntryDetail       | Yes           | Single entry — view, edit take, change tag, delete |
 | `/profile`         | Profile           | Yes           | User info and entry counts grouped by tag        |
 
+### User Flow
+
+1. A new visitor lands on `/` and sees the landing page. They click Register.
+2. After registering at `/register`, they are redirected to `/collection` (empty state).
+3. They navigate to `/search`, type an artist or album name, and see results as cards.
+4. They click Save on a result, choose a tag (loved / want to listen / overrated), optionally write a take, and confirm.
+5. They navigate to `/collection` to see everything they've saved. They use the tag filter tabs to narrow the list.
+6. They click an entry to open `/collection/:id` where they can edit the tag or take, or delete the entry.
+7. They visit `/profile` to see their name, email, and a count of entries by tag.
+8. A logout button in the nav clears the JWT and redirects to `/`.
+
 ### Navigation
 
 A persistent top navigation bar is present on all authenticated pages with links to Search, Collection, and Profile. Unauthenticated users only see Login and Register.
@@ -105,6 +116,76 @@ backend/
 | PUT    | /api/collection/:id     | Yes  | `{ tag, take }`                                | `{ entry }`                     |
 | DELETE | /api/collection/:id     | Yes  | —                                              | `{ message }`                   |
 | GET    | /api/profile            | Yes  | —                                              | `{ user, counts: { loved, want_to_listen, overrated } }` |
+
+### Example Requests and Responses
+
+**POST /api/auth/register**
+```json
+// Request
+{ "name": "Grayson", "email": "grayson@example.com", "password": "hunter2" }
+
+// Response 201
+{ "user": { "id": 1, "name": "Grayson", "email": "grayson@example.com" }, "token": "eyJhbGci..." }
+```
+
+**POST /api/auth/login**
+```json
+// Request
+{ "email": "grayson@example.com", "password": "hunter2" }
+
+// Response 200
+{ "user": { "id": 1, "name": "Grayson", "email": "grayson@example.com" }, "token": "eyJhbGci..." }
+```
+
+**POST /api/collection**
+```json
+// Request
+{
+  "musicbrainz_id": "a74b1b7f-71a5-4011-9441-d0b5e4122711",
+  "entity_type": "artist",
+  "name": "Radiohead",
+  "artist_name": null,
+  "tag": "loved",
+  "take": "One of the most important bands of the 90s."
+}
+
+// Response 201
+{
+  "entry": {
+    "id": 42,
+    "musicbrainz_id": "a74b1b7f-71a5-4011-9441-d0b5e4122711",
+    "entity_type": "artist",
+    "name": "Radiohead",
+    "tag": "loved",
+    "take": "One of the most important bands of the 90s.",
+    "saved_at": "2026-04-13T17:00:00Z"
+  }
+}
+```
+
+**GET /api/collection?tag=loved**
+```json
+// Response 200
+[
+  {
+    "id": 42,
+    "entity_type": "artist",
+    "name": "Radiohead",
+    "tag": "loved",
+    "take": "One of the most important bands of the 90s.",
+    "saved_at": "2026-04-13T17:00:00Z"
+  }
+]
+```
+
+**GET /api/profile**
+```json
+// Response 200
+{
+  "user": { "id": 1, "name": "Grayson", "email": "grayson@example.com", "created_at": "2026-04-13T12:00:00Z" },
+  "counts": { "loved": 12, "want_to_listen": 5, "overrated": 3 }
+}
+```
 
 ### Authentication Flow
 
