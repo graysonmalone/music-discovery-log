@@ -1,6 +1,6 @@
 [Unit]
 Description=Music Discovery Log Go Backend
-After=network.target
+After=network.target mysql.service
 
 [Service]
 Type=simple
@@ -9,6 +9,8 @@ WorkingDirectory=/var/www/music-discovery-log/backend
 ExecStart=/var/www/music-discovery-log/backend/music-discovery-log-backend
 Restart=on-failure
 RestartSec=5
+Environment=DB_DSN=music_app:MissyGirl22@tcp(localhost:3306)/music_discovery_log?parseTime=true
+Environment=JWT_SECRET=60b921ea885620e76dc838842be6e94157985bd341c02665e3459476e91b869f
 
 [Install]
 WantedBy=multi-user.target

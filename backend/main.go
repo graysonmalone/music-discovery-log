@@ -1,24 +1,40 @@
 package main
 
 import (
-	"encoding/json"
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	_ "github.com/go-sql-driver/mysql"
+	db "github.com/graysonmalone/music-discovery-log/db/generated"
+	"github.com/graysonmalone/music-discovery-log/routes"
 )
 
 func main() {
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	dsn := os.Getenv("DB_DSN")
+	if dsn == "" {
+		log.Fatal("DB_DSN environment variable is required")
+	}
 
-	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-	})
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET environment variable is required")
+	}
+
+	conn, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatalf("failed to open database: %v", err)
+	}
+	defer conn.Close()
+
+	if err := conn.Ping(); err != nil {
+		log.Fatalf("failed to connect to database: %v", err)
+	}
+	log.Println("Connected to database")
+
+	queries := db.New(conn)
+	router := routes.Setup(queries, jwtSecret)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -26,5 +42,5 @@ func main() {
 	}
 
 	log.Printf("Server listening on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, r))
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }
