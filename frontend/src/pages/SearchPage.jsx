@@ -3,10 +3,9 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { search } from '@/api/search'
 import { createEntry } from '@/api/collection'
-import { coverArtUrl } from '@/lib/coverArt'
+import { releaseGroupCoverUrl } from '@/lib/coverArt'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -30,6 +29,38 @@ function getArtistName(result, type) {
     return result['artist-credit']?.map((c) => c.name || c.artist?.name).join(', ') || null
   }
   return null
+}
+
+function CoverTile({ releaseGroupId, name }) {
+  const [loaded, setLoaded] = useState(false)
+  const [failed, setFailed] = useState(false)
+
+  if (!releaseGroupId || failed) {
+    return (
+      <div className="w-full aspect-square bg-gray-800 flex items-center justify-center">
+        <svg className="w-10 h-10 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+        </svg>
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-full aspect-square bg-gray-800 relative">
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-5 h-5 border-2 border-gray-600 border-t-purple-500 rounded-full animate-spin" />
+        </div>
+      )}
+      <img
+        src={releaseGroupCoverUrl(releaseGroupId)}
+        alt={name}
+        className={`w-full h-full object-cover transition-opacity duration-200 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+        onLoad={() => setLoaded(true)}
+        onError={() => setFailed(true)}
+      />
+    </div>
+  )
 }
 
 export function SearchPage() {
@@ -100,7 +131,7 @@ export function SearchPage() {
   const results = getResults(data, submittedType)
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-white mb-6">Search</h1>
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-8">
@@ -131,9 +162,10 @@ export function SearchPage() {
         <p className="text-gray-500 text-center py-8">No results found.</p>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {results.map((result) => {
           const mbId = result.id
+          const rgId = result['release-group']?.id ?? null
           const name = submittedType === 'release' ? result.title : result.name
           const artistName = getArtistName(result, submittedType)
           const isSaved = savedIds.has(mbId)
@@ -141,22 +173,11 @@ export function SearchPage() {
 
           return (
             <div key={mbId} className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden flex flex-col">
-              {/* Cover art */}
-              <div className="aspect-square bg-gray-800 overflow-hidden">
+              <div className="overflow-hidden">
                 {submittedType === 'release' ? (
-                  <img
-                    src={coverArtUrl(mbId)}
-                    alt={name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                      e.currentTarget.parentElement.classList.add('flex', 'items-center', 'justify-center')
-                      e.currentTarget.parentElement.innerHTML =
-                        '<svg class="w-10 h-10 text-gray-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>'
-                    }}
-                  />
+                  <CoverTile releaseGroupId={rgId} name={name} />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-full aspect-square bg-gray-800 flex items-center justify-center">
                     <svg className="w-10 h-10 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
                     </svg>

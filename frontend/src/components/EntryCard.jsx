@@ -1,30 +1,41 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { TagBadge } from '@/components/TagBadge'
-import { coverArtUrl } from '@/lib/coverArt'
+import { releaseCoverUrl } from '@/lib/coverArt'
+
+function MusicIcon() {
+  return (
+    <svg className="w-10 h-10 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+    </svg>
+  )
+}
 
 function CoverImage({ entry }) {
-  if (entry.entity_type !== 'release') {
+  const [loaded, setLoaded] = useState(false)
+  const [failed, setFailed] = useState(false)
+
+  if (entry.entity_type !== 'release' || failed) {
     return (
-      <div className="w-full aspect-square bg-gray-800 flex items-center justify-center rounded-t-lg">
-        <svg className="w-12 h-12 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-        </svg>
+      <div className="w-full aspect-square bg-gray-800 flex items-center justify-center">
+        <MusicIcon />
       </div>
     )
   }
 
   return (
-    <div className="w-full aspect-square bg-gray-800 rounded-t-lg overflow-hidden">
+    <div className="w-full aspect-square bg-gray-800 relative">
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-5 h-5 border-2 border-gray-600 border-t-purple-500 rounded-full animate-spin" />
+        </div>
+      )}
       <img
-        src={coverArtUrl(entry.musicbrainz_id)}
+        src={releaseCoverUrl(entry.musicbrainz_id)}
         alt={entry.name}
-        className="w-full h-full object-cover"
-        onError={(e) => {
-          e.currentTarget.style.display = 'none'
-          e.currentTarget.parentElement.classList.add('flex', 'items-center', 'justify-center')
-          e.currentTarget.parentElement.innerHTML =
-            '<svg class="w-12 h-12 text-gray-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>'
-        }}
+        className={`w-full h-full object-cover transition-opacity duration-200 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+        onLoad={() => setLoaded(true)}
+        onError={() => setFailed(true)}
       />
     </div>
   )

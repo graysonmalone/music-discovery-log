@@ -1,3 +1,7 @@
-export function coverArtUrl(mbid) {
-  return `https://coverartarchive.org/release/${mbid}/front-250`
+export function releaseGroupCoverUrl(releaseGroupId) {
+  return `https://coverartarchive.org/release-group/${releaseGroupId}/front`
+}
+
+export function releaseCoverUrl(releaseId) {
+  return `https://coverartarchive.org/release/${releaseId}/front`
 }
