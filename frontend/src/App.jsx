@@ -1,22 +1,57 @@
-import { useEffect, useState } from 'react'
+import { Routes, Route } from 'react-router-dom'
+import { NavBar } from '@/components/NavBar'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { LandingPage } from '@/pages/LandingPage'
+import { LoginPage } from '@/pages/LoginPage'
+import { RegisterPage } from '@/pages/RegisterPage'
+import { SearchPage } from '@/pages/SearchPage'
+import { CollectionPage } from '@/pages/CollectionPage'
+import { CollectionDetailPage } from '@/pages/CollectionDetailPage'
+import { ProfilePage } from '@/pages/ProfilePage'
 
 function App() {
-  const [status, setStatus] = useState('checking...')
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then((res) => res.json())
-      .then((data) => setStatus(data.status))
-      .catch(() => setStatus('unreachable'))
-  }, [])
-
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center gap-4">
-      <h1 className="text-4xl font-bold">Music Discovery Log</h1>
-      <p className="text-gray-400">Hello World</p>
-      <p className="text-sm text-gray-500">
-        API status: <span className="text-green-400">{status}</span>
-      </p>
+    <div className="min-h-screen bg-gray-950 text-white">
+      <NavBar />
+      <main>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/search"
+            element={
+              <ProtectedRoute>
+                <SearchPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/collection"
+            element={
+              <ProtectedRoute>
+                <CollectionPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/collection/:id"
+            element={
+              <ProtectedRoute>
+                <CollectionDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </main>
     </div>
   )
 }
