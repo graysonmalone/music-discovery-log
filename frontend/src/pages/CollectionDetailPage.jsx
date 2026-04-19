@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { itunesIdFromEntry } from '@/api/itunes'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getEntry, updateEntry, deleteEntry } from '@/api/collection'
 import { ArtworkImage } from '@/components/ArtworkImage'
@@ -222,7 +223,20 @@ export function CollectionDetailPage() {
             </div>
           )}
 
-          <p className="text-xs text-gray-700 mt-8">
+          {/* Link to iTunes profile if we have the ID */}
+          {(() => {
+            const itunesId = itunesIdFromEntry(entry)
+            if (!itunesId) return null
+            const path = entry.entity_type === 'artist' ? `/artist/${itunesId}` : `/album/${itunesId}`
+            const label = entry.entity_type === 'artist' ? 'Browse discography →' : 'View full album →'
+            return (
+              <Link to={path} className="inline-block mt-4 text-sm text-purple-400 hover:text-purple-300 transition-colors">
+                {label}
+              </Link>
+            )
+          })()}
+
+          <p className="text-xs text-gray-700 mt-4">
             Saved {new Date(entry.saved_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>

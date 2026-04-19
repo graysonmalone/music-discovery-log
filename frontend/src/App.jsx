@@ -8,6 +8,8 @@ import { SearchPage } from '@/pages/SearchPage'
 import { CollectionPage } from '@/pages/CollectionPage'
 import { CollectionDetailPage } from '@/pages/CollectionDetailPage'
 import { ProfilePage } from '@/pages/ProfilePage'
+import { ArtistPage } from '@/pages/ArtistPage'
+import { AlbumPage } from '@/pages/AlbumPage'
 
 function App() {
   return (
@@ -50,6 +52,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/artist/:id" element={<ArtistPage />} />
+          <Route path="/album/:id" element={<AlbumPage />} />
         </Routes>
       </main>
     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { searchItunes } from '@/api/itunes'
 import { createEntry } from '@/api/collection'
@@ -41,6 +41,7 @@ function SearchSkeleton() {
 
 export function SearchPage() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const [q, setQ] = useState(searchParams.get('q') || '')
@@ -145,19 +146,33 @@ export function SearchPage() {
         {results.map((result) => {
           const isSaved = savedIds.has(result.id)
           const isSavingThis = savingId === result.id
+          const detailPath = result.entityType === 'artist'
+            ? `/artist/${result.id}`
+            : result.isSong ? null : `/album/${result.id}`
 
           return (
-            <div key={result.id} className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden flex flex-col">
-              <ArtworkImage
-                name={result.name}
-                artistName={result.artistName}
-                directUrl={result.artworkUrl}
-                className="w-full aspect-square"
-              />
+            <div key={result.id} className="bg-gray-900 border border-gray-800 hover:border-purple-700 transition-colors rounded-lg overflow-hidden flex flex-col">
+              {/* Artwork — clicking navigates to detail page */}
+              <div
+                className={detailPath ? 'cursor-pointer' : ''}
+                onClick={() => detailPath && navigate(detailPath)}
+              >
+                <ArtworkImage
+                  name={result.name}
+                  artistName={result.artistName}
+                  directUrl={result.artworkUrl}
+                  className="w-full aspect-square"
+                />
+              </div>
 
               <div className="p-3 flex flex-col flex-1">
                 <div className="flex items-start gap-1 mb-0.5">
-                  <p className="text-sm font-medium text-white line-clamp-1 flex-1">{result.name}</p>
+                  <p
+                    className={`text-sm font-medium text-white line-clamp-1 flex-1 ${detailPath ? 'cursor-pointer hover:text-purple-400 transition-colors' : ''}`}
+                    onClick={() => detailPath && navigate(detailPath)}
+                  >
+                    {result.name}
+                  </p>
                   <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
                     result.isSong
                       ? 'bg-green-900/50 text-green-300'
