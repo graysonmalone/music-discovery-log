@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { searchItunes, getRandomSong } from '@/api/itunes'
-import { createEntry } from '@/api/collection'
+import { createEntry, getCollection } from '@/api/collection'
 import { ArtworkImage } from '@/components/ArtworkImage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -152,6 +152,13 @@ export function SearchPage() {
     enabled: searched && submittedQ !== '',
   })
 
+  const { data: collection } = useQuery({
+    queryKey: ['collection', ''],
+    queryFn: () => getCollection(''),
+  })
+
+  const collectionIds = new Set((collection ?? []).map(e => e.musicbrainz_id.replace('itunes-', '')))
+
   // Apply client-side filters
   const results = rawResults.filter(r => {
     if (genre !== 'All Genres') {
@@ -287,7 +294,7 @@ export function SearchPage() {
       {results.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-12">
           {results.map((result) => {
-            const isSaved = savedIds.has(result.id)
+            const isSaved = savedIds.has(result.id) || collectionIds.has(result.id)
             const isSavingThis = savingId === result.id
             const detailPath = result.entityType === 'artist'
               ? `/artist/${result.id}`
@@ -356,7 +363,7 @@ export function SearchPage() {
       {/* All-time classics — shown when not searching */}
       {!searched && (
         <div>
-          <h2 className="text-lg font-semibold text-white mb-1">Greatest of all time</h2>
+          <h2 className="text-lg font-semibold text-white mb-1">All time favorites</h2>
           <p className="text-sm text-gray-500 mb-4">Iconic artists, albums, and songs from music history</p>
 
           <div className="flex gap-2 mb-4">
