@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { search } from '@/api/search'
 import { createEntry } from '@/api/collection'
-import { releaseGroupCoverUrl } from '@/lib/coverArt'
+import { ArtworkImage } from '@/components/ArtworkImage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -29,38 +29,6 @@ function getArtistName(result, type) {
     return result['artist-credit']?.map((c) => c.name || c.artist?.name).join(', ') || null
   }
   return null
-}
-
-function CoverTile({ releaseGroupId, name }) {
-  const [loaded, setLoaded] = useState(false)
-  const [failed, setFailed] = useState(false)
-
-  if (!releaseGroupId || failed) {
-    return (
-      <div className="w-full aspect-square bg-gray-800 flex items-center justify-center">
-        <svg className="w-10 h-10 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-        </svg>
-      </div>
-    )
-  }
-
-  return (
-    <div className="w-full aspect-square bg-gray-800 relative">
-      {!loaded && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-5 h-5 border-2 border-gray-600 border-t-purple-500 rounded-full animate-spin" />
-        </div>
-      )}
-      <img
-        src={releaseGroupCoverUrl(releaseGroupId)}
-        alt={name}
-        className={`w-full h-full object-cover transition-opacity duration-200 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-        onLoad={() => setLoaded(true)}
-        onError={() => setFailed(true)}
-      />
-    </div>
-  )
 }
 
 export function SearchPage() {
@@ -165,7 +133,6 @@ export function SearchPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {results.map((result) => {
           const mbId = result.id
-          const rgId = result['release-group']?.id ?? null
           const name = submittedType === 'release' ? result.title : result.name
           const artistName = getArtistName(result, submittedType)
           const isSaved = savedIds.has(mbId)
@@ -173,17 +140,11 @@ export function SearchPage() {
 
           return (
             <div key={mbId} className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden flex flex-col">
-              <div className="overflow-hidden">
-                {submittedType === 'release' ? (
-                  <CoverTile releaseGroupId={rgId} name={name} />
-                ) : (
-                  <div className="w-full aspect-square bg-gray-800 flex items-center justify-center">
-                    <svg className="w-10 h-10 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                    </svg>
-                  </div>
-                )}
-              </div>
+              <ArtworkImage
+                name={name}
+                artistName={artistName}
+                className="w-full aspect-square"
+              />
 
               <div className="p-3 flex flex-col flex-1">
                 <p className="text-sm font-medium text-white line-clamp-1">{name}</p>

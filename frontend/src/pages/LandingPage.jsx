@@ -3,17 +3,18 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { Input } from '@/components/ui/input'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { ArtworkImage } from '@/components/ArtworkImage'
 import { cn } from '@/lib/utils'
 
 const FEATURED = [
-  { name: 'Kendrick Lamar', sub: 'Hip-Hop', query: 'Kendrick Lamar', type: 'artist' },
-  { name: 'Sabrina Carpenter', sub: 'Pop', query: 'Sabrina Carpenter', type: 'artist' },
-  { name: 'Chappell Roan', sub: 'Pop', query: 'Chappell Roan', type: 'artist' },
-  { name: 'Tyler, the Creator', sub: 'Hip-Hop', query: 'Tyler the Creator', type: 'artist' },
-  { name: 'Short n\' Sweet', sub: 'Sabrina Carpenter', query: 'Short n Sweet Sabrina Carpenter', type: 'release' },
-  { name: 'GNX', sub: 'Kendrick Lamar', query: 'GNX Kendrick Lamar', type: 'release' },
-  { name: 'The Rise and Fall of a Midwest Princess', sub: 'Chappell Roan', query: 'Rise Fall Midwest Princess', type: 'release' },
-  { name: 'Chromakopia', sub: 'Tyler, the Creator', query: 'Chromakopia Tyler', type: 'release' },
+  { name: 'Kendrick Lamar', sub: 'Hip-Hop', query: 'Kendrick Lamar', type: 'artist', artistName: null },
+  { name: 'Sabrina Carpenter', sub: 'Pop', query: 'Sabrina Carpenter', type: 'artist', artistName: null },
+  { name: 'Chappell Roan', sub: 'Pop', query: 'Chappell Roan', type: 'artist', artistName: null },
+  { name: 'Tyler, the Creator', sub: 'Hip-Hop', query: 'Tyler the Creator', type: 'artist', artistName: null },
+  { name: 'Short n\'Sweet', sub: 'Sabrina Carpenter', query: 'Short n Sweet Sabrina Carpenter', type: 'release', artistName: 'Sabrina Carpenter' },
+  { name: 'GNX', sub: 'Kendrick Lamar', query: 'GNX Kendrick Lamar', type: 'release', artistName: 'Kendrick Lamar' },
+  { name: 'Midwest Princess', sub: 'Chappell Roan', query: 'Rise Fall Midwest Princess Chappell Roan', type: 'release', artistName: 'Chappell Roan' },
+  { name: 'Chromakopia', sub: 'Tyler, the Creator', query: 'Chromakopia Tyler Creator', type: 'release', artistName: 'Tyler, the Creator' },
 ]
 
 export function LandingPage() {
@@ -43,7 +44,6 @@ export function LandingPage() {
           Search artists and albums, save them, tag them, and write your take.
         </p>
 
-        {/* Search bar */}
         <form onSubmit={handleSearch} className="flex gap-2 max-w-xl mx-auto">
           <Input
             type="text"
@@ -73,7 +73,7 @@ export function LandingPage() {
         )}
       </div>
 
-      {/* Trending / Featured */}
+      {/* Trending */}
       <div>
         <h2 className="text-lg font-semibold text-white mb-4">Trending now</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -81,24 +81,25 @@ export function LandingPage() {
             <button
               key={item.name}
               onClick={() => handleFeaturedClick(item)}
-              className="bg-gray-900 border border-gray-800 hover:border-purple-700 rounded-lg p-4 text-left transition-colors group"
+              className="bg-gray-900 border border-gray-800 hover:border-purple-700 rounded-lg overflow-hidden text-left transition-colors group"
             >
-              <div className="w-full aspect-square bg-gray-800 rounded-md mb-3 flex items-center justify-center">
-                <svg className="w-8 h-8 text-purple-700 group-hover:text-purple-500 transition-colors" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                </svg>
+              <ArtworkImage
+                name={item.name}
+                artistName={item.artistName}
+                className="w-full aspect-square"
+              />
+              <div className="p-3">
+                <p className="text-sm font-medium text-white group-hover:text-purple-400 transition-colors line-clamp-1">
+                  {item.name}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{item.sub}</p>
               </div>
-              <p className="text-sm font-medium text-white group-hover:text-purple-400 transition-colors line-clamp-1">
-                {item.name}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{item.sub}</p>
-              <span className="text-xs text-gray-600 capitalize mt-1 inline-block">{item.type}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* CTA for non-logged-in users */}
+      {/* CTA for logged-out users */}
       {!isAuthenticated && (
         <div className="mt-12 text-center">
           <p className="text-gray-400 mb-4">Ready to start logging your music?</p>
