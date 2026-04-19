@@ -5,6 +5,7 @@ import { getCollection } from '@/api/collection'
 import { ArtworkImage } from '@/components/ArtworkImage'
 import { TagBadge } from '@/components/TagBadge'
 import { ErrorMessage } from '@/components/ErrorMessage'
+import { useTop3 } from '@/context/Top3Context'
 
 function ProfileSkeleton() {
   return (
@@ -31,6 +32,8 @@ function ProfileSkeleton() {
 }
 
 export function ProfilePage() {
+  const { top3, remove: removeFromTop3 } = useTop3()
+
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery({
     queryKey: ['profile'],
     queryFn: getProfile,
@@ -85,6 +88,51 @@ export function ProfilePage() {
           <StatBox label="Want to Listen" value={counts.want_to_listen} color="text-blue-400" />
           <StatBox label="Overrated" value={counts.overrated} color="text-amber-400" />
         </div>
+      </div>
+
+      {/* Top 3 */}
+      <div>
+        <h2 className="text-white font-semibold mb-1">My Top 3</h2>
+        <p className="text-xs text-gray-500 mb-4">Pin up to 3 artists, albums, or songs</p>
+        {top3.length === 0 ? (
+          <div className="bg-gray-900 border border-dashed border-gray-700 rounded-xl p-6 text-center">
+            <p className="text-gray-500 text-sm">No picks yet — add up to 3 from an artist or album page.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-3">
+            {top3.map((item) => {
+              const path = item.entityType === 'artist' ? `/artist/${item.id}` : `/album/${item.id}`
+              return (
+                <div key={item.id} className="bg-gray-900 border border-yellow-600/40 rounded-lg overflow-hidden group relative">
+                  <Link to={path}>
+                    {item.artworkUrl ? (
+                      <img src={item.artworkUrl} alt={item.name} className="w-full aspect-square object-cover group-hover:opacity-90 transition-opacity" />
+                    ) : (
+                      <ArtworkImage name={item.name} artistName={item.artistName} className="w-full aspect-square" />
+                    )}
+                  </Link>
+                  <div className="p-2">
+                    <p className="text-xs font-medium text-white line-clamp-1">{item.name}</p>
+                    {item.artistName && <p className="text-xs text-gray-500 line-clamp-1">{item.artistName}</p>}
+                    <span className="text-xs text-yellow-500 capitalize">{item.entityType === 'artist' ? 'Artist' : 'Album'}</span>
+                  </div>
+                  <button
+                    onClick={() => removeFromTop3(item.id)}
+                    className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-red-900/80 text-gray-400 hover:text-white rounded-full w-6 h-6 flex items-center justify-center text-xs transition-colors"
+                    title="Remove from Top 3"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )
+            })}
+            {Array.from({ length: 3 - top3.length }).map((_, i) => (
+              <div key={`empty-${i}`} className="bg-gray-900 border border-dashed border-gray-800 rounded-lg aspect-square flex items-center justify-center">
+                <p className="text-gray-700 text-xs text-center px-2">Empty slot</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Recent entries */}

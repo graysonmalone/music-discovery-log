@@ -1,8 +1,9 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getAlbumDetail, formatDuration, releaseYear } from '@/api/itunes'
-import { createEntry } from '@/api/collection'
+import { createEntry, getCollection } from '@/api/collection'
 import { ErrorMessage } from '@/components/ErrorMessage'
+import { useTop3 } from '@/context/Top3Context'
 
 function PageSkeleton() {
   return (
@@ -28,11 +29,17 @@ export function AlbumPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { add: addToTop3, remove: removeFromTop3, isInTop3, isFull } = useTop3()
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['album', id],
     queryFn: () => getAlbumDetail(id),
     staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: collection } = useQuery({
+    queryKey: ['collection', ''],
+    queryFn: () => getCollection(''),
   })
 
   const saveMutation = useMutation({
@@ -52,6 +59,10 @@ export function AlbumPage() {
   const { album, tracks } = data
   const year = releaseYear(album.releaseDate)
   const totalMs = tracks.reduce((sum, t) => sum + (t.trackTimeMillis ?? 0), 0)
+  const itunesId = `itunes-${id}`
+  const isAlreadySaved = collection?.some(e => e.musicbrainz_id === itunesId)
+  const inTop3 = isInTop3(id)
+  const artworkUrl = album.artworkUrl100?.replace('100x100bb', '500x500bb') ?? null
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 animate-fadein">
@@ -91,19 +102,44 @@ export function AlbumPage() {
           </p>
 
           <div className="flex gap-2 mt-4">
+            {isAlreadySaved ? (
+              <span className="text-sm text-green-400 flex items-center gap-1.5">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                Saved
+              </span>
+            ) : (
+              <button
+                onClick={() => saveMutation.mutate({
+                  musicbrainz_id: itunesId,
+                  entity_type: 'release',
+                  name: album.collectionName,
+                  artist_name: album.artistName,
+                  tag: 'loved',
+                  take: null,
+                })}
+                disabled={saveMutation.isPending || saveMutation.isSuccess}
+                className="text-sm bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-4 py-1.5 rounded-lg transition-colors"
+              >
+                {saveMutation.isSuccess ? 'Saved ✓' : saveMutation.isPending ? 'Saving…' : '+ Save to collection'}
+              </button>
+            )}
+
             <button
-              onClick={() => saveMutation.mutate({
-                musicbrainz_id: `itunes-${album.collectionId}`,
-                entity_type: 'release',
-                name: album.collectionName,
-                artist_name: album.artistName,
-                tag: 'loved',
-                take: null,
-              })}
-              disabled={saveMutation.isPending || saveMutation.isSuccess}
-              className="text-sm bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-4 py-1.5 rounded-lg transition-colors"
+              onClick={() => inTop3
+                ? removeFromTop3(id)
+                : addToTop3({ id, entityType: 'release', name: album.collectionName, artworkUrl, artistName: album.artistName })
+              }
+              disabled={!inTop3 && isFull}
+              className={`text-sm px-4 py-1.5 rounded-lg transition-colors border ${
+                inTop3
+                  ? 'border-yellow-500 text-yellow-400 hover:bg-yellow-500/10'
+                  : isFull
+                  ? 'border-gray-700 text-gray-600 cursor-not-allowed'
+                  : 'border-gray-600 text-gray-300 hover:border-yellow-500 hover:text-yellow-400'
+              }`}
+              title={isFull && !inTop3 ? 'Top 3 is full' : undefined}
             >
-              {saveMutation.isSuccess ? 'Saved ✓' : saveMutation.isPending ? 'Saving…' : '+ Save to collection'}
+              {inTop3 ? '★ In Top 3' : '☆ Add to Top 3'}
             </button>
           </div>
         </div>

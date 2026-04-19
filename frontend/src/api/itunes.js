@@ -145,6 +145,17 @@ export function releaseYear(dateStr) {
 }
 
 // Extract iTunes ID from a saved entry's musicbrainz_id field
+const RANDOM_GENRES = ['pop', 'rock', 'hip-hop', 'r&b', 'country', 'electronic', 'jazz', 'soul', 'indie', 'alternative', 'latin', 'classical']
+
+export async function getRandomSong() {
+  const genre = RANDOM_GENRES[Math.floor(Math.random() * RANDOM_GENRES.length)]
+  const data = await itunesFetch({ term: genre, entity: 'musicTrack', media: 'music', limit: 50 })
+  const songs = (data.results ?? []).filter(r => r.kind === 'song')
+  if (songs.length === 0) throw new Error('No songs found')
+  const song = songs[Math.floor(Math.random() * songs.length)]
+  return song
+}
+
 export function itunesIdFromEntry(entry) {
   if (entry.musicbrainz_id?.startsWith('itunes-')) {
     return entry.musicbrainz_id.replace('itunes-', '')
