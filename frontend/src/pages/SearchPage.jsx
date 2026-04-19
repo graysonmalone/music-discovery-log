@@ -16,6 +16,13 @@ import {
 } from '@/components/ui/select'
 import { ErrorMessage } from '@/components/ErrorMessage'
 
+const TYPES = [
+  { value: 'all', label: 'All' },
+  { value: 'artist', label: 'Artists' },
+  { value: 'album', label: 'Albums' },
+  { value: 'song', label: 'Songs' },
+]
+
 function SearchSkeleton() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -37,7 +44,9 @@ export function SearchPage() {
   const queryClient = useQueryClient()
 
   const [q, setQ] = useState(searchParams.get('q') || '')
+  const [type, setType] = useState('all')
   const [submittedQ, setSubmittedQ] = useState(searchParams.get('q') || '')
+  const [submittedType, setSubmittedType] = useState('all')
   const [searched, setSearched] = useState(!!searchParams.get('q'))
 
   const [savingId, setSavingId] = useState(null)
@@ -55,8 +64,8 @@ export function SearchPage() {
   }, [searchParams])
 
   const { data: results = [], isLoading, error } = useQuery({
-    queryKey: ['search', submittedQ],
-    queryFn: () => searchItunes(submittedQ),
+    queryKey: ['search', submittedQ, submittedType],
+    queryFn: () => searchItunes(submittedQ, submittedType),
     enabled: searched && submittedQ !== '',
   })
 
@@ -75,6 +84,7 @@ export function SearchPage() {
     e.preventDefault()
     if (!q.trim()) return
     setSubmittedQ(q.trim())
+    setSubmittedType(type)
     setSearched(true)
     setSavingId(null)
   }
@@ -83,7 +93,7 @@ export function SearchPage() {
     saveMutation.mutate({
       musicbrainz_id: `itunes-${result.id}`,
       entity_type: result.entityType,
-      name: result.name,
+      name: result.isSong ? `${result.name} (${result.albumName ?? 'Single'})` : result.name,
       artist_name: result.artistName,
       tag: saveTag,
       take: saveTake || null,
@@ -94,23 +104,40 @@ export function SearchPage() {
     <div className="max-w-5xl mx-auto px-4 py-8 animate-fadein">
       <h1 className="text-2xl font-bold text-white mb-6">Search</h1>
 
-      <form onSubmit={handleSearch} className="flex gap-2 mb-8">
+      <form onSubmit={handleSearch} className="flex gap-2 mb-6">
         <Input
           type="text"
-          placeholder="Search any artist, album, or song…"
+          placeholder="Search music…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 flex-1"
           autoFocus
         />
-        <Button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white">
+        <Button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white shrink-0">
           Search
         </Button>
       </form>
 
+      {/* Type filter tabs */}
+      <div className="flex gap-2 mb-6">
+        {TYPES.map((t) => (
+          <button
+            key={t.value}
+            onClick={() => setType(t.value)}
+            className={`text-sm px-4 py-1.5 rounded-full transition-colors ${
+              type === t.value
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:text-white'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {isLoading && <SearchSkeleton />}
       {error && <ErrorMessage message="Search failed. Please try again." />}
-      {searched && !isLoading && results.length === 0 && (
+      {searched && !isLoading && !error && results.length === 0 && (
         <p className="text-gray-500 text-center py-8">No results found for "{submittedQ}".</p>
       )}
 
@@ -132,15 +159,20 @@ export function SearchPage() {
                 <div className="flex items-start gap-1 mb-0.5">
                   <p className="text-sm font-medium text-white line-clamp-1 flex-1">{result.name}</p>
                   <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
-                    result.entityType === 'artist'
-                      ? 'bg-purple-900/50 text-purple-300'
-                      : 'bg-blue-900/50 text-blue-300'
+                    result.isSong
+                      ? 'bg-green-900/50 text-green-300'
+                      : result.entityType === 'artist'
+                        ? 'bg-purple-900/50 text-purple-300'
+                        : 'bg-blue-900/50 text-blue-300'
                   }`}>
-                    {result.entityType === 'artist' ? 'Artist' : 'Album'}
+                    {result.isSong ? 'Song' : result.entityType === 'artist' ? 'Artist' : 'Album'}
                   </span>
                 </div>
                 {result.artistName && (
                   <p className="text-xs text-gray-400 line-clamp-1">{result.artistName}</p>
+                )}
+                {result.isSong && result.albumName && (
+                  <p className="text-xs text-gray-600 line-clamp-1">{result.albumName}</p>
                 )}
 
                 {!isSavingThis && (
