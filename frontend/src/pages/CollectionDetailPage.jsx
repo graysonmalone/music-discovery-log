@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getEntry, updateEntry, deleteEntry } from '@/api/collection'
+import { ArtworkImage } from '@/components/ArtworkImage'
 import { TagBadge } from '@/components/TagBadge'
-import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -15,6 +15,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+
+function DetailSkeleton() {
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8 animate-pulse">
+      <div className="h-4 w-32 bg-gray-800 rounded mb-8" />
+      <div className="flex flex-col sm:flex-row gap-8">
+        <div className="w-full sm:w-72 aspect-square bg-gray-800 rounded-xl shrink-0" />
+        <div className="flex-1 space-y-4 pt-2">
+          <div className="h-7 bg-gray-800 rounded w-3/4" />
+          <div className="h-4 bg-gray-800 rounded w-1/2" />
+          <div className="h-5 w-24 bg-gray-800 rounded-full" />
+          <div className="h-24 bg-gray-800 rounded mt-6" />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function CollectionDetailPage() {
   const { id } = useParams()
@@ -62,7 +79,8 @@ export function CollectionDetailPage() {
     updateMutation.mutate({ tag, take: take || null })
   }
 
-  if (isLoading) return <LoadingSpinner />
+  if (isLoading) return <DetailSkeleton />
+
   if (error) return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <ErrorMessage message="Entry not found." />
@@ -70,130 +88,144 @@ export function CollectionDetailPage() {
   )
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-8 animate-fadein">
       <button
         onClick={() => navigate('/collection')}
-        className="text-sm text-gray-500 hover:text-gray-300 mb-6 flex items-center gap-1"
+        className="text-sm text-gray-500 hover:text-gray-300 mb-8 flex items-center gap-1.5 transition-colors"
       >
         ← Back to collection
       </button>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white">{entry.name}</h1>
-            {entry.artist_name && (
-              <p className="text-gray-400 mt-1">{entry.artist_name}</p>
-            )}
+      <div className="flex flex-col sm:flex-row gap-8">
+        {/* Artwork */}
+        <div className="w-full sm:w-72 shrink-0">
+          <div className="rounded-xl overflow-hidden shadow-2xl shadow-black/50">
+            <ArtworkImage
+              name={entry.name}
+              artistName={entry.artist_name}
+              className="w-full aspect-square"
+            />
           </div>
-          <TagBadge tag={entry.tag} />
         </div>
 
-        <p className="text-xs text-gray-500 capitalize">{entry.entity_type}</p>
-
-        {!editing && (
-          <div className="pt-2">
-            {entry.take ? (
-              <p className="text-gray-300 leading-relaxed">{entry.take}</p>
-            ) : (
-              <p className="text-gray-600 italic">No personal take written yet.</p>
-            )}
+        {/* Details */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start gap-3 mb-1">
+            <h1 className="text-3xl font-bold text-white leading-tight flex-1">{entry.name}</h1>
           </div>
-        )}
 
-        {editing && (
-          <div className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label className="text-gray-300">Tag</Label>
-              <Select value={tag} onValueChange={setTag}>
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
-                  <SelectItem value="loved" className="text-white">Loved</SelectItem>
-                  <SelectItem value="want_to_listen" className="text-white">Want to Listen</SelectItem>
-                  <SelectItem value="overrated" className="text-white">Overrated</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {entry.artist_name && (
+            <p className="text-lg text-gray-400 mb-3">{entry.artist_name}</p>
+          )}
 
-            <div className="space-y-1.5">
-              <Label className="text-gray-300">Personal take</Label>
-              <Textarea
-                value={take}
-                onChange={(e) => setTake(e.target.value)}
-                placeholder="Write your thoughts…"
-                rows={4}
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={handleSave}
-                disabled={updateMutation.isPending}
-                className="bg-purple-600 hover:bg-purple-700"
-              >
-                {updateMutation.isPending ? 'Saving…' : 'Save'}
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setEditing(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                Cancel
-              </Button>
-            </div>
-
-            {updateMutation.isError && (
-              <ErrorMessage message="Failed to save changes." />
-            )}
+          <div className="flex items-center gap-2 mb-6">
+            <TagBadge tag={entry.tag} />
+            <span className="text-xs text-gray-600 capitalize">{entry.entity_type}</span>
           </div>
-        )}
 
-        {!editing && (
-          <div className="flex gap-2 pt-4 border-t border-gray-800">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={startEdit}
-              className="border-gray-700 text-gray-300 hover:text-white"
-            >
-              Edit
-            </Button>
+          {/* Take / Edit form */}
+          {!editing ? (
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Your take</p>
+              {entry.take ? (
+                <p className="text-gray-300 leading-relaxed">{entry.take}</p>
+              ) : (
+                <p className="text-gray-600 italic">No take written yet.</p>
+              )}
 
-            {!deleteConfirm ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setDeleteConfirm(true)}
-                className="text-red-500 hover:text-red-400 hover:bg-red-950/30"
-              >
-                Delete
-              </Button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-red-400">Are you sure?</span>
+              <div className="flex gap-2 mt-8">
                 <Button
                   size="sm"
-                  onClick={() => deleteMutation.mutate()}
-                  disabled={deleteMutation.isPending}
-                  className="bg-red-700 hover:bg-red-600 text-white"
+                  onClick={startEdit}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
                 >
-                  {deleteMutation.isPending ? 'Deleting…' : 'Yes, delete'}
+                  Edit
+                </Button>
+
+                {!deleteConfirm ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setDeleteConfirm(true)}
+                    className="text-red-500 hover:text-red-400 hover:bg-red-950/30"
+                  >
+                    Delete
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-red-400">Delete this entry?</span>
+                    <Button
+                      size="sm"
+                      onClick={() => deleteMutation.mutate()}
+                      disabled={deleteMutation.isPending}
+                      className="bg-red-700 hover:bg-red-600 text-white"
+                    >
+                      {deleteMutation.isPending ? 'Deleting…' : 'Yes, delete'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setDeleteConfirm(false)}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-gray-300">Tag</Label>
+                <Select value={tag} onValueChange={setTag}>
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700">
+                    <SelectItem value="loved" className="text-white">Loved</SelectItem>
+                    <SelectItem value="want_to_listen" className="text-white">Want to Listen</SelectItem>
+                    <SelectItem value="overrated" className="text-white">Overrated</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-gray-300">Personal take</Label>
+                <Textarea
+                  value={take}
+                  onChange={(e) => setTake(e.target.value)}
+                  placeholder="Write your thoughts…"
+                  rows={5}
+                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSave}
+                  disabled={updateMutation.isPending}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  {updateMutation.isPending ? 'Saving…' : 'Save'}
                 </Button>
                 <Button
-                  size="sm"
                   variant="ghost"
-                  onClick={() => setDeleteConfirm(false)}
+                  onClick={() => setEditing(false)}
                   className="text-gray-400 hover:text-white"
                 >
                   Cancel
                 </Button>
               </div>
-            )}
-          </div>
-        )}
+
+              {updateMutation.isError && <ErrorMessage message="Failed to save changes." />}
+            </div>
+          )}
+
+          <p className="text-xs text-gray-700 mt-8">
+            Saved {new Date(entry.saved_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+        </div>
       </div>
     </div>
   )

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { search } from '@/api/search'
+import { searchAll } from '@/api/search'
 import { createEntry } from '@/api/collection'
 import { ArtworkImage } from '@/components/ArtworkImage'
 import { Button } from '@/components/ui/button'
@@ -14,21 +14,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { ErrorMessage } from '@/components/ErrorMessage'
 
-function getResults(data, type) {
-  if (!data) return []
-  if (type === 'artist') return data.artists ?? []
-  if (type === 'release') return data.releases ?? []
-  return []
-}
-
-function getArtistName(result, type) {
-  if (type === 'release') {
-    return result['artist-credit']?.map((c) => c.name || c.artist?.name).join(', ') || null
-  }
-  return null
+function SearchSkeleton() {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden animate-pulse">
+          <div className="w-full aspect-square bg-gray-800" />
+          <div className="p-3 space-y-2">
+            <div className="h-3 bg-gray-800 rounded w-3/4" />
+            <div className="h-2 bg-gray-800 rounded w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export function SearchPage() {
@@ -36,9 +37,7 @@ export function SearchPage() {
   const queryClient = useQueryClient()
 
   const [q, setQ] = useState(searchParams.get('q') || '')
-  const [type, setType] = useState(searchParams.get('type') || 'artist')
   const [submittedQ, setSubmittedQ] = useState(searchParams.get('q') || '')
-  const [submittedType, setSubmittedType] = useState(searchParams.get('type') || 'artist')
   const [searched, setSearched] = useState(!!searchParams.get('q'))
 
   const [savingId, setSavingId] = useState(null)
@@ -48,19 +47,16 @@ export function SearchPage() {
 
   useEffect(() => {
     const paramQ = searchParams.get('q')
-    const paramType = searchParams.get('type') || 'artist'
     if (paramQ) {
       setQ(paramQ)
-      setType(paramType)
       setSubmittedQ(paramQ)
-      setSubmittedType(paramType)
       setSearched(true)
     }
   }, [searchParams])
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['search', submittedQ, submittedType],
-    queryFn: () => search(submittedQ, submittedType),
+  const { data: results = [], isLoading, error } = useQuery({
+    queryKey: ['search', submittedQ],
+    queryFn: () => searchAll(submittedQ),
     enabled: searched && submittedQ !== '',
   })
 
@@ -79,76 +75,72 @@ export function SearchPage() {
     e.preventDefault()
     if (!q.trim()) return
     setSubmittedQ(q.trim())
-    setSubmittedType(type)
     setSearched(true)
     setSavingId(null)
   }
 
   function handleSave(result) {
-    const artistName = getArtistName(result, submittedType)
     saveMutation.mutate({
       musicbrainz_id: result.id,
-      entity_type: submittedType,
-      name: submittedType === 'release' ? result.title : result.name,
-      artist_name: artistName,
+      entity_type: result.entityType,
+      name: result.name,
+      artist_name: result.artistName,
       tag: saveTag,
       take: saveTake || null,
     })
   }
 
-  const results = getResults(data, submittedType)
-
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-4 py-8 animate-fadein">
       <h1 className="text-2xl font-bold text-white mb-6">Search</h1>
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-8">
         <Input
           type="text"
-          placeholder="Artist or album name…"
+          placeholder="Search any artist, album, or song…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 flex-1"
+          autoFocus
         />
-        <Select value={type} onValueChange={setType}>
-          <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-36">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-gray-700">
-            <SelectItem value="artist" className="text-white">Artist</SelectItem>
-            <SelectItem value="release" className="text-white">Album</SelectItem>
-          </SelectContent>
-        </Select>
         <Button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white">
           Search
         </Button>
       </form>
 
-      {isLoading && <LoadingSpinner />}
+      {isLoading && <SearchSkeleton />}
       {error && <ErrorMessage message="Search failed. Please try again." />}
       {searched && !isLoading && results.length === 0 && (
-        <p className="text-gray-500 text-center py-8">No results found.</p>
+        <p className="text-gray-500 text-center py-8">No results found for "{submittedQ}".</p>
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {results.map((result) => {
-          const mbId = result.id
-          const name = submittedType === 'release' ? result.title : result.name
-          const artistName = getArtistName(result, submittedType)
-          const isSaved = savedIds.has(mbId)
-          const isSavingThis = savingId === mbId
+          const isSaved = savedIds.has(result.id)
+          const isSavingThis = savingId === result.id
 
           return (
-            <div key={mbId} className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden flex flex-col">
+            <div key={result.id} className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden flex flex-col">
               <ArtworkImage
-                name={name}
-                artistName={artistName}
+                name={result.name}
+                artistName={result.artistName}
                 className="w-full aspect-square"
               />
 
               <div className="p-3 flex flex-col flex-1">
-                <p className="text-sm font-medium text-white line-clamp-1">{name}</p>
-                {artistName && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{artistName}</p>}
+                <div className="flex items-start gap-1 mb-0.5">
+                  <p className="text-sm font-medium text-white line-clamp-1 flex-1">{result.name}</p>
+                  <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
+                    result.entityType === 'artist'
+                      ? 'bg-purple-900/50 text-purple-300'
+                      : 'bg-blue-900/50 text-blue-300'
+                  }`}>
+                    {result.entityType === 'artist' ? 'Artist' : 'Album'}
+                  </span>
+                </div>
+                {result.artistName && (
+                  <p className="text-xs text-gray-400 line-clamp-1">{result.artistName}</p>
+                )}
 
                 {!isSavingThis && (
                   <div className="mt-auto pt-2">
@@ -156,7 +148,7 @@ export function SearchPage() {
                       <span className="text-xs text-green-400">Saved ✓</span>
                     ) : (
                       <button
-                        onClick={() => { setSavingId(mbId); setSaveTag('loved'); setSaveTake('') }}
+                        onClick={() => { setSavingId(result.id); setSaveTag('loved'); setSaveTake('') }}
                         className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
                       >
                         + Save to collection

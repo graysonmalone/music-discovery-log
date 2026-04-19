@@ -21,16 +21,15 @@ export function LandingPage() {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [q, setQ] = useState('')
-  const [type, setType] = useState('artist')
 
   function handleSearch(e) {
     e.preventDefault()
     if (!q.trim()) return
-    navigate(`/search?q=${encodeURIComponent(q.trim())}&type=${type}`)
+    navigate(`/search?q=${encodeURIComponent(q.trim())}`)
   }
 
   function handleFeaturedClick(item) {
-    navigate(`/search?q=${encodeURIComponent(item.query)}&type=${item.type}`)
+    navigate(`/search?q=${encodeURIComponent(item.query)}`)
   }
 
   return (
@@ -47,19 +46,11 @@ export function LandingPage() {
         <form onSubmit={handleSearch} className="flex gap-2 max-w-xl mx-auto">
           <Input
             type="text"
-            placeholder="Search artists or albums…"
+            placeholder="Search any artist, album, or song…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 flex-1"
           />
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="bg-gray-800 border border-gray-700 text-gray-300 rounded-lg px-3 text-sm"
-          >
-            <option value="artist">Artist</option>
-            <option value="release">Album</option>
-          </select>
           <Button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white shrink-0">
             Search
           </Button>
