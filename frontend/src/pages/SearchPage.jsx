@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { searchAll } from '@/api/search'
+import { searchItunes } from '@/api/itunes'
 import { createEntry } from '@/api/collection'
 import { ArtworkImage } from '@/components/ArtworkImage'
 import { Button } from '@/components/ui/button'
@@ -56,7 +56,7 @@ export function SearchPage() {
 
   const { data: results = [], isLoading, error } = useQuery({
     queryKey: ['search', submittedQ],
-    queryFn: () => searchAll(submittedQ),
+    queryFn: () => searchItunes(submittedQ),
     enabled: searched && submittedQ !== '',
   })
 
@@ -81,7 +81,7 @@ export function SearchPage() {
 
   function handleSave(result) {
     saveMutation.mutate({
-      musicbrainz_id: result.id,
+      musicbrainz_id: `itunes-${result.id}`,
       entity_type: result.entityType,
       name: result.name,
       artist_name: result.artistName,
@@ -124,6 +124,7 @@ export function SearchPage() {
               <ArtworkImage
                 name={result.name}
                 artistName={result.artistName}
+                directUrl={result.artworkUrl}
                 className="w-full aspect-square"
               />
 
