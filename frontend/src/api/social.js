@@ -64,3 +64,9 @@ export async function deleteComment(commentId) {
   const { data } = await client.delete(`/comments/${commentId}`)
   return data
 }
+
+export async function getUserCollection(userId, tag) {
+  const params = tag ? { tag } : {}
+  const { data } = await client.get(`/users/${userId}/collection`, { params })
+  return data
+}

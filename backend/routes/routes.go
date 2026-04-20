@@ -51,6 +51,7 @@ func Setup(queries *db.Queries, conn *sql.DB, jwtSecret string) http.Handler {
 		r.Get("/api/users/search", social.SearchUsers)
 		r.Get("/api/users/{id}", social.GetPublicProfile)
 		r.Get("/api/users/{id}/top3", top3.GetPublicTop3)
+		r.Get("/api/users/{id}/collection", social.GetUserCollection)
 
 		// Social — follows
 		r.Post("/api/follows/{id}", social.Follow)

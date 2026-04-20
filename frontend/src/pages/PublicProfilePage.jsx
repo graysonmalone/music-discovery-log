@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getPublicProfile, followUser, unfollowUser, getFollowing, toggleLike } from '@/api/social'
+import { getPublicProfile, followUser, unfollowUser, getFollowing, toggleLike, getUserCollection } from '@/api/social'
 import { ArtworkImage } from '@/components/ArtworkImage'
 import { TagBadge } from '@/components/TagBadge'
 import { ErrorMessage } from '@/components/ErrorMessage'
@@ -53,6 +54,7 @@ export function PublicProfilePage() {
   const navigate = useNavigate()
   const { user: currentUser } = useAuth()
   const queryClient = useQueryClient()
+  const [tagFilter, setTagFilter] = useState(null)
 
   if (currentUser && String(currentUser.id) === String(id)) {
     navigate('/profile', { replace: true })
@@ -87,6 +89,12 @@ export function PublicProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['publicProfile', id] })
       queryClient.invalidateQueries({ queryKey: ['feed'] })
     },
+  })
+
+  const { data: taggedEntries = [], isLoading: taggedLoading } = useQuery({
+    queryKey: ['userCollection', id, tagFilter],
+    queryFn: () => getUserCollection(id, tagFilter === 'all' ? null : tagFilter),
+    enabled: !!tagFilter,
   })
 
   if (isLoading) return <ProfileSkeleton />
@@ -172,13 +180,56 @@ export function PublicProfilePage() {
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
         <h2 className="text-white font-semibold mb-4">Collection</h2>
         <div className="grid grid-cols-2 gap-3">
-          <StatBox label="Total" value={total} color="text-white" />
-          <StatBox label="Loved" value={counts.loved ?? 0} color="text-pink-400" />
-          <StatBox label="Want to Listen" value={counts.want_to_listen ?? 0} color="text-blue-400" />
-          <StatBox label="Overrated" value={counts.overrated ?? 0} color="text-amber-400" />
-          <StatBox label="Put On" value={counts.put_on ?? 0} color="text-teal-400" />
+          <StatBox label="Total" value={total} color="text-white" onClick={() => setTagFilter(f => f === 'all' ? null : 'all')} active={tagFilter === 'all'} />
+          <StatBox label="Loved" value={counts.loved ?? 0} color="text-pink-400" onClick={() => setTagFilter(f => f === 'loved' ? null : 'loved')} active={tagFilter === 'loved'} />
+          <StatBox label="Want to Listen" value={counts.want_to_listen ?? 0} color="text-blue-400" onClick={() => setTagFilter(f => f === 'want_to_listen' ? null : 'want_to_listen')} active={tagFilter === 'want_to_listen'} />
+          <StatBox label="Overrated" value={counts.overrated ?? 0} color="text-amber-400" onClick={() => setTagFilter(f => f === 'overrated' ? null : 'overrated')} active={tagFilter === 'overrated'} />
+          <StatBox label="Put On" value={counts.put_on ?? 0} color="text-teal-400" onClick={() => setTagFilter(f => f === 'put_on' ? null : 'put_on')} active={tagFilter === 'put_on'} />
         </div>
       </div>
+
+      {/* Tag-filtered entries panel */}
+      {tagFilter && (
+        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+            <p className="text-sm font-semibold text-white">
+              {{ all: 'All entries', loved: 'Loved', want_to_listen: 'Want to Listen', overrated: 'Overrated', put_on: 'Put On' }[tagFilter]}
+            </p>
+            <button onClick={() => setTagFilter(null)} className="text-gray-500 hover:text-white text-xs">Close</button>
+          </div>
+          {taggedLoading ? (
+            <p className="text-xs text-gray-600 px-4 py-6 text-center">Loading…</p>
+          ) : taggedEntries.length === 0 ? (
+            <p className="text-gray-500 text-sm px-4 py-6 text-center">No entries here yet.</p>
+          ) : (
+            <div className="divide-y divide-gray-800 max-h-80 overflow-y-auto">
+              {taggedEntries.map(entry => {
+                const itunesId = entry.musicbrainz_id?.startsWith('itunes-')
+                  ? entry.musicbrainz_id.replace('itunes-', '')
+                  : null
+                const detailPath = itunesId
+                  ? entry.entity_type === 'artist' ? `/artist/${itunesId}` : `/album/${itunesId}`
+                  : null
+                const inner = (
+                  <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800/50 transition-colors">
+                    <ArtworkImage name={entry.name} artistName={entry.artist_name} className="w-10 h-10 rounded shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white truncate">{entry.name}</p>
+                      {entry.artist_name && <p className="text-xs text-gray-500 truncate">{entry.artist_name}</p>}
+                    </div>
+                    <TagBadge tag={entry.tag} />
+                  </div>
+                )
+                return detailPath ? (
+                  <Link key={entry.id} to={detailPath}>{inner}</Link>
+                ) : (
+                  <div key={entry.id}>{inner}</div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Recent entries */}
       {recent.length > 0 && (
@@ -225,11 +276,14 @@ export function PublicProfilePage() {
   )
 }
 
-function StatBox({ label, value, color }) {
+function StatBox({ label, value, color, onClick, active }) {
   return (
-    <div className="bg-gray-800 rounded-lg p-4 text-center">
+    <button
+      onClick={onClick}
+      className={`bg-gray-800 rounded-lg p-4 text-center w-full transition-colors hover:bg-gray-750 ${active ? 'ring-2 ring-purple-500' : ''}`}
+    >
       <p className={`text-3xl font-bold ${color}`}>{value}</p>
       <p className="text-xs text-gray-500 mt-1">{label}</p>
-    </div>
+    </button>
   )
 }

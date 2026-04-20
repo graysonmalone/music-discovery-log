@@ -242,6 +242,51 @@ func (h *SocialHandler) GetPublicProfile(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+// GetUserCollection GET /api/users/:id/collection?tag=
+func (h *SocialHandler) GetUserCollection(w http.ResponseWriter, r *http.Request) {
+	currentUserID, ok := middleware.GetUserID(r)
+	if !ok {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+	targetID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 32)
+	if err != nil {
+		http.Error(w, `{"error":"invalid id"}`, http.StatusBadRequest)
+		return
+	}
+
+	tag := r.URL.Query().Get("tag")
+	var query string
+	var args []interface{}
+	if tag != "" {
+		query = `SELECT ` + socialEntrySelect + ` FROM collection_entries ce WHERE ce.user_id = ? AND ce.tag = ? ORDER BY ce.saved_at DESC`
+		args = []interface{}{currentUserID, int32(targetID), tag}
+	} else {
+		query = `SELECT ` + socialEntrySelect + ` FROM collection_entries ce WHERE ce.user_id = ? ORDER BY ce.saved_at DESC`
+		args = []interface{}{currentUserID, int32(targetID)}
+	}
+
+	rows, err := h.DB.QueryContext(r.Context(), query, args...)
+	if err != nil {
+		log.Printf("get user collection: %v", err)
+		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	entries := []socialEntryResponse{}
+	for rows.Next() {
+		e, err := scanSocialEntry(rows)
+		if err != nil {
+			continue
+		}
+		entries = append(entries, e)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(entries)
+}
+
 // Follow POST /api/follows/:id
 func (h *SocialHandler) Follow(w http.ResponseWriter, r *http.Request) {
 	followerID, ok := middleware.GetUserID(r)
