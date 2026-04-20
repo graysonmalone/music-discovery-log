@@ -178,13 +178,14 @@ export function PublicProfilePage() {
 
       {/* Stats */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-        <h2 className="text-white font-semibold mb-4">Collection</h2>
+        <h2 className="text-white font-semibold mb-1">Collection</h2>
+        <p className="text-xs text-gray-500 mb-4">Click any tag to browse those entries</p>
         <div className="grid grid-cols-2 gap-3">
-          <StatBox label="Total" value={total} color="text-white" onClick={() => setTagFilter(f => f === 'all' ? null : 'all')} active={tagFilter === 'all'} />
-          <StatBox label="Loved" value={counts.loved ?? 0} color="text-pink-400" onClick={() => setTagFilter(f => f === 'loved' ? null : 'loved')} active={tagFilter === 'loved'} />
-          <StatBox label="Want to Listen" value={counts.want_to_listen ?? 0} color="text-blue-400" onClick={() => setTagFilter(f => f === 'want_to_listen' ? null : 'want_to_listen')} active={tagFilter === 'want_to_listen'} />
-          <StatBox label="Overrated" value={counts.overrated ?? 0} color="text-amber-400" onClick={() => setTagFilter(f => f === 'overrated' ? null : 'overrated')} active={tagFilter === 'overrated'} />
-          <StatBox label="Put On" value={counts.put_on ?? 0} color="text-teal-400" onClick={() => setTagFilter(f => f === 'put_on' ? null : 'put_on')} active={tagFilter === 'put_on'} />
+          <StatBox label="Total saved" value={total} color="text-white" accent="hover:border-gray-600" onClick={() => setTagFilter(f => f === 'all' ? null : 'all')} active={tagFilter === 'all'} />
+          <StatBox label="Loved" value={counts.loved ?? 0} color="text-pink-400" accent="hover:border-pink-700" onClick={() => setTagFilter(f => f === 'loved' ? null : 'loved')} active={tagFilter === 'loved'} />
+          <StatBox label="Want to Listen" value={counts.want_to_listen ?? 0} color="text-blue-400" accent="hover:border-blue-700" onClick={() => setTagFilter(f => f === 'want_to_listen' ? null : 'want_to_listen')} active={tagFilter === 'want_to_listen'} />
+          <StatBox label="Overrated" value={counts.overrated ?? 0} color="text-amber-400" accent="hover:border-amber-700" onClick={() => setTagFilter(f => f === 'overrated' ? null : 'overrated')} active={tagFilter === 'overrated'} />
+          <StatBox label="Put On" value={counts.put_on ?? 0} color="text-teal-400" accent="hover:border-teal-700" onClick={() => setTagFilter(f => f === 'put_on' ? null : 'put_on')} active={tagFilter === 'put_on'} />
         </div>
       </div>
 
@@ -276,14 +277,24 @@ export function PublicProfilePage() {
   )
 }
 
-function StatBox({ label, value, color, onClick, active }) {
+function StatBox({ label, value, color, accent, onClick, active }) {
   return (
     <button
       onClick={onClick}
-      className={`bg-gray-800 rounded-lg p-4 text-center w-full transition-colors hover:bg-gray-750 ${active ? 'ring-2 ring-purple-500' : ''}`}
+      className={`
+        bg-gray-800 border rounded-xl p-4 text-center w-full
+        transition-all duration-200
+        hover:scale-[1.03] hover:shadow-lg hover:bg-gray-750
+        active:scale-[0.98]
+        ${active
+          ? 'border-purple-500 ring-1 ring-purple-500/50 shadow-purple-900/30 shadow-md'
+          : `border-gray-700 ${accent}`
+        }
+      `}
     >
       <p className={`text-3xl font-bold ${color}`}>{value}</p>
-      <p className="text-xs text-gray-500 mt-1">{label}</p>
+      <p className="text-xs text-gray-400 mt-1">{label}</p>
+      <p className="text-xs text-gray-600 mt-0.5">{active ? 'Click to close ↑' : 'Click to view →'}</p>
     </button>
   )
 }
