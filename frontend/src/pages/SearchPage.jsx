@@ -186,12 +186,16 @@ export function SearchPage() {
   const qRef = useRef(q)
   useEffect(() => { qRef.current = q }, [q])
 
-  // Auto-search when genre or decade is changed
+  // Auto-search when genre or decade is changed.
+  // We embed the decade directly into the search term so iTunes returns era-appropriate results
+  // rather than relying on unreliable client-side filtering.
   useEffect(() => {
     const hasGenre = genre !== 'All Genres'
     const hasDecade = decade !== ''
     if (!hasGenre && !hasDecade) return
-    const searchTerm = qRef.current.trim() || (hasGenre ? GENRE_SEARCH_TERMS[genre] ?? genre.toLowerCase() : 'popular music')
+    const genreTerm = hasGenre ? (GENRE_SEARCH_TERMS[genre] ?? genre.toLowerCase()) : (qRef.current.trim() || 'popular music')
+    const decadeSuffix = hasDecade ? ` ${decade}s` : ''
+    const searchTerm = genreTerm + decadeSuffix
     setSubmittedQ(searchTerm)
     setSubmittedType(type)
     setSearched(true)
@@ -211,24 +215,9 @@ export function SearchPage() {
 
   const collectionIds = new Set((collection ?? []).map(e => e.musicbrainz_id.replace('itunes-', '')))
 
-  // Apply client-side filters.
-  // Genre filter only runs when the user typed their own query (if the search was auto-triggered
-  // by genre selection, the search term itself is already genre-specific — no need to re-filter).
-  // It also skips items with no genre metadata (e.g. artists).
-  const userTypedQuery = q.trim() !== ''
-  const results = rawResults.filter(r => {
-    if (genre !== 'All Genres' && userTypedQuery && r.genre) {
-      const g = r.genre.toLowerCase()
-      const genreKey = genre.toLowerCase().split('/')[0].split('&')[0].trim()
-      if (!g.includes(genreKey)) return false
-    }
-    // Decade: only filter items that have release year data
-    if (decade && r.releaseYear) {
-      const start = parseInt(decade)
-      if (r.releaseYear < start || r.releaseYear >= start + 10) return false
-    }
-    return true
-  })
+  // No client-side filtering — genre and decade are embedded directly in the search term
+  // so iTunes handles it. Client-side filtering was unreliable (only 15-20 results to filter from).
+  const results = rawResults
 
   const saveMutation = useMutation({
     mutationFn: (entry) => createEntry(entry),
