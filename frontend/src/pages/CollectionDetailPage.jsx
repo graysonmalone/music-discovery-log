@@ -9,6 +9,7 @@ import { ErrorMessage } from '@/components/ErrorMessage'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { useTop3 } from '@/context/Top3Context'
 import {
   Select,
   SelectContent,
@@ -38,6 +39,7 @@ export function CollectionDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { isInTop3, add: addToTop3, remove: removeFromTop3 } = useTop3()
 
   const [editing, setEditing] = useState(false)
   const [tag, setTag] = useState('')
@@ -134,7 +136,7 @@ export function CollectionDetailPage() {
                 <p className="text-gray-600 italic">No take written yet.</p>
               )}
 
-              <div className="flex gap-2 mt-8">
+              <div className="flex gap-2 mt-8 flex-wrap">
                 <Button
                   size="sm"
                   onClick={startEdit}
@@ -142,6 +144,34 @@ export function CollectionDetailPage() {
                 >
                   Edit
                 </Button>
+
+                {(() => {
+                  const itunesId = itunesIdFromEntry(entry)
+                  if (!itunesId) return null
+                  const inTop3 = isInTop3(itunesId)
+                  return (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => inTop3
+                        ? removeFromTop3(itunesId)
+                        : addToTop3({
+                            id: itunesId,
+                            entityType: entry.entity_type === 'release' ? 'album' : entry.entity_type,
+                            name: entry.name,
+                            artworkUrl: null,
+                            artistName: entry.artist_name,
+                          })
+                      }
+                      className={inTop3
+                        ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-950/30'
+                        : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-950/30'
+                      }
+                    >
+                      {inTop3 ? '★ In Top 3' : '☆ Add to Top 3'}
+                    </Button>
+                  )
+                })()}
 
                 {!deleteConfirm ? (
                   <Button

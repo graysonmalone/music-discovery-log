@@ -109,9 +109,8 @@ export async function getArtistProfile(artistId) {
 // Get tracklist for an album by iTunes collection ID
 export async function getAlbumDetail(albumId) {
   const data = await itunesLookup({ id: albumId, entity: 'song' })
-  const album = data.results?.[0] ?? null
+  const album = (data.results ?? []).find(r => r.wrapperType === 'collection') ?? null
   const tracks = (data.results ?? [])
-    .slice(1)
     .filter(r => r.kind === 'song')
     .sort((a, b) => (a.discNumber - b.discNumber) || (a.trackNumber - b.trackNumber))
 
