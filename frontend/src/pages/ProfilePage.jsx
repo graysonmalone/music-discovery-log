@@ -5,7 +5,7 @@ import { getProfile } from '@/api/profile'
 import { getCollection } from '@/api/collection'
 import { getFollowing, getFollowers } from '@/api/social'
 import { ArtworkImage } from '@/components/ArtworkImage'
-import { TagBadge } from '@/components/TagBadge'
+import { TagBadges } from '@/components/TagBadge'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { useTop3 } from '@/context/Top3Context'
 
@@ -233,7 +233,7 @@ export function ProfilePage() {
                     {entry.name}
                   </p>
                   <div className="mt-1">
-                    <TagBadge tag={entry.tag} />
+                    <TagBadges tags={entry.tags} tag={entry.tag} />
                   </div>
                 </div>
               </Link>

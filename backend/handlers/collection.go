@@ -15,6 +15,7 @@ import (
 
 type CollectionHandler struct {
 	Queries *db.Queries
+	DB      *sql.DB
 }
 
 type entryResponse struct {
@@ -25,43 +26,58 @@ type entryResponse struct {
 	Name          string    `json:"name"`
 	ArtistName    *string   `json:"artist_name"`
 	Tag           string    `json:"tag"`
+	Tags          []string  `json:"tags"`
 	Take          *string   `json:"take"`
 	SavedAt       time.Time `json:"saved_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type createEntryRequest struct {
-	MusicbrainzID string  `json:"musicbrainz_id"`
-	EntityType    string  `json:"entity_type"`
-	Name          string  `json:"name"`
-	ArtistName    *string `json:"artist_name"`
-	Tag           string  `json:"tag"`
-	Take          *string `json:"take"`
+	MusicbrainzID string   `json:"musicbrainz_id"`
+	EntityType    string   `json:"entity_type"`
+	Name          string   `json:"name"`
+	ArtistName    *string  `json:"artist_name"`
+	Tags          []string `json:"tags"`
+	Take          *string  `json:"take"`
 }
 
 type updateEntryRequest struct {
-	Tag  string  `json:"tag"`
-	Take *string `json:"take"`
+	Tags []string `json:"tags"`
+	Take *string  `json:"take"`
 }
 
-func toEntryResponse(e db.CollectionEntry) entryResponse {
-	r := entryResponse{
-		ID:            e.ID,
-		UserID:        e.UserID,
-		MusicbrainzID: e.MusicbrainzID,
-		EntityType:    string(e.EntityType),
-		Name:          e.Name,
-		Tag:           string(e.Tag),
-		SavedAt:       e.SavedAt,
-		UpdatedAt:     e.UpdatedAt,
+// parseTags unmarshals the JSON tags column, falling back to [fallback] if empty/null.
+func parseTags(tagsJSON sql.NullString, fallback string) []string {
+	if tagsJSON.Valid && tagsJSON.String != "" {
+		var tags []string
+		if err := json.Unmarshal([]byte(tagsJSON.String), &tags); err == nil && len(tags) > 0 {
+			return tags
+		}
 	}
-	if e.ArtistName.Valid {
-		r.ArtistName = &e.ArtistName.String
+	if fallback != "" {
+		return []string{fallback}
 	}
-	if e.Take.Valid {
-		r.Take = &e.Take.String
+	return []string{}
+}
+
+const entrySelectCols = `id, user_id, musicbrainz_id, entity_type, name, artist_name, tag, tags, take, saved_at, updated_at`
+
+func scanEntryRow(row interface{ Scan(...interface{}) error }) (entryResponse, error) {
+	var e entryResponse
+	var artistName, tagsJSON, take sql.NullString
+	err := row.Scan(&e.ID, &e.UserID, &e.MusicbrainzID, &e.EntityType, &e.Name,
+		&artistName, &e.Tag, &tagsJSON, &take, &e.SavedAt, &e.UpdatedAt)
+	if err != nil {
+		return e, err
 	}
-	return r
+	if artistName.Valid {
+		e.ArtistName = &artistName.String
+	}
+	if take.Valid {
+		e.Take = &take.String
+	}
+	e.Tags = parseTags(tagsJSON, e.Tag)
+	return e, nil
 }
 
 func (h *CollectionHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -73,27 +89,33 @@ func (h *CollectionHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	tag := r.URL.Query().Get("tag")
 
-	var entries []db.CollectionEntry
+	var rows *sql.Rows
 	var err error
-
 	if tag != "" {
-		entries, err = h.Queries.ListEntriesByUserAndTag(r.Context(), db.ListEntriesByUserAndTagParams{
-			UserID: userID,
-			Tag:    db.CollectionEntriesTag(tag),
-		})
+		rows, err = h.DB.QueryContext(r.Context(),
+			`SELECT `+entrySelectCols+` FROM collection_entries
+			 WHERE user_id = ? AND JSON_CONTAINS(COALESCE(tags, JSON_ARRAY(tag)), JSON_QUOTE(?))
+			 ORDER BY saved_at DESC`,
+			userID, tag)
 	} else {
-		entries, err = h.Queries.ListEntriesByUser(r.Context(), userID)
+		rows, err = h.DB.QueryContext(r.Context(),
+			`SELECT `+entrySelectCols+` FROM collection_entries WHERE user_id = ? ORDER BY saved_at DESC`,
+			userID)
 	}
-
 	if err != nil {
 		log.Printf("list entries error: %v", err)
 		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
 		return
 	}
+	defer rows.Close()
 
-	resp := make([]entryResponse, len(entries))
-	for i, e := range entries {
-		resp[i] = toEntryResponse(e)
+	resp := []entryResponse{}
+	for rows.Next() {
+		e, err := scanEntryRow(rows)
+		if err != nil {
+			continue
+		}
+		resp = append(resp, e)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -112,26 +134,27 @@ func (h *CollectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
 		return
 	}
-	if req.MusicbrainzID == "" || req.EntityType == "" || req.Name == "" || req.Tag == "" {
-		http.Error(w, `{"error":"musicbrainz_id, entity_type, name, and tag are required"}`, http.StatusBadRequest)
+	if req.MusicbrainzID == "" || req.EntityType == "" || req.Name == "" || len(req.Tags) == 0 {
+		http.Error(w, `{"error":"musicbrainz_id, entity_type, name, and tags are required"}`, http.StatusBadRequest)
 		return
 	}
 
-	params := db.CreateEntryParams{
-		UserID:        userID,
-		MusicbrainzID: req.MusicbrainzID,
-		EntityType:    db.CollectionEntriesEntityType(req.EntityType),
-		Name:          req.Name,
-		Tag:           db.CollectionEntriesTag(req.Tag),
-	}
+	primaryTag := req.Tags[0]
+	tagsJSON, _ := json.Marshal(req.Tags)
+
+	var artistName sql.NullString
 	if req.ArtistName != nil {
-		params.ArtistName = sql.NullString{String: *req.ArtistName, Valid: true}
+		artistName = sql.NullString{String: *req.ArtistName, Valid: true}
 	}
+	var take sql.NullString
 	if req.Take != nil {
-		params.Take = sql.NullString{String: *req.Take, Valid: true}
+		take = sql.NullString{String: *req.Take, Valid: true}
 	}
 
-	result, err := h.Queries.CreateEntry(r.Context(), params)
+	result, err := h.DB.ExecContext(r.Context(),
+		`INSERT INTO collection_entries (user_id, musicbrainz_id, entity_type, name, artist_name, tag, tags, take)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		userID, req.MusicbrainzID, req.EntityType, req.Name, artistName, primaryTag, string(tagsJSON), take)
 	if err != nil {
 		log.Printf("create entry error: %v", err)
 		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
@@ -139,7 +162,9 @@ func (h *CollectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, _ := result.LastInsertId()
-	entry, err := h.Queries.GetEntryByID(r.Context(), db.GetEntryByIDParams{ID: int32(id), UserID: userID})
+	row := h.DB.QueryRowContext(r.Context(),
+		`SELECT `+entrySelectCols+` FROM collection_entries WHERE id = ? AND user_id = ?`, id, userID)
+	entry, err := scanEntryRow(row)
 	if err != nil {
 		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
 		return
@@ -147,7 +172,7 @@ func (h *CollectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]entryResponse{"entry": toEntryResponse(entry)})
+	json.NewEncoder(w).Encode(map[string]entryResponse{"entry": entry})
 }
 
 func (h *CollectionHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -163,7 +188,9 @@ func (h *CollectionHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entry, err := h.Queries.GetEntryByID(r.Context(), db.GetEntryByIDParams{ID: int32(id), UserID: userID})
+	row := h.DB.QueryRowContext(r.Context(),
+		`SELECT `+entrySelectCols+` FROM collection_entries WHERE id = ? AND user_id = ?`, id, userID)
+	entry, err := scanEntryRow(row)
 	if err == sql.ErrNoRows {
 		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 		return
@@ -174,7 +201,7 @@ func (h *CollectionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]entryResponse{"entry": toEntryResponse(entry)})
+	json.NewEncoder(w).Encode(map[string]entryResponse{"entry": entry})
 }
 
 func (h *CollectionHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -195,27 +222,31 @@ func (h *CollectionHandler) Update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
 		return
 	}
-	if req.Tag == "" {
-		http.Error(w, `{"error":"tag is required"}`, http.StatusBadRequest)
+	if len(req.Tags) == 0 {
+		http.Error(w, `{"error":"at least one tag is required"}`, http.StatusBadRequest)
 		return
 	}
 
-	params := db.UpdateEntryParams{
-		Tag:    db.CollectionEntriesTag(req.Tag),
-		ID:     int32(id),
-		UserID: userID,
-	}
+	primaryTag := req.Tags[0]
+	tagsJSON, _ := json.Marshal(req.Tags)
+
+	var take sql.NullString
 	if req.Take != nil {
-		params.Take = sql.NullString{String: *req.Take, Valid: true}
+		take = sql.NullString{String: *req.Take, Valid: true}
 	}
 
-	if err := h.Queries.UpdateEntry(r.Context(), params); err != nil {
+	_, err = h.DB.ExecContext(r.Context(),
+		`UPDATE collection_entries SET tag = ?, tags = ?, take = ?, updated_at = NOW() WHERE id = ? AND user_id = ?`,
+		primaryTag, string(tagsJSON), take, id, userID)
+	if err != nil {
 		log.Printf("update entry error: %v", err)
 		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
 		return
 	}
 
-	entry, err := h.Queries.GetEntryByID(r.Context(), db.GetEntryByIDParams{ID: int32(id), UserID: userID})
+	row := h.DB.QueryRowContext(r.Context(),
+		`SELECT `+entrySelectCols+` FROM collection_entries WHERE id = ? AND user_id = ?`, id, userID)
+	entry, err := scanEntryRow(row)
 	if err == sql.ErrNoRows {
 		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 		return
@@ -225,7 +256,7 @@ func (h *CollectionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]entryResponse{"entry": toEntryResponse(entry)})
+	json.NewEncoder(w).Encode(map[string]entryResponse{"entry": entry})
 }
 
 func (h *CollectionHandler) Delete(w http.ResponseWriter, r *http.Request) {

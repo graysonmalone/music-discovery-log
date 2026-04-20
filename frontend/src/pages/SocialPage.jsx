@@ -6,7 +6,7 @@ import {
   toggleLike, getComments, createComment, deleteComment,
 } from '@/api/social'
 import { ArtworkImage } from '@/components/ArtworkImage'
-import { TagBadge } from '@/components/TagBadge'
+import { TagBadges } from '@/components/TagBadge'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -142,7 +142,7 @@ function FeedItem({ item }) {
             <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{item.artist_name}</p>
           )}
           <div className="mt-1.5 flex items-center gap-3">
-            <TagBadge tag={item.tag} />
+            <TagBadges tags={item.tags} tag={item.tag} />
             {item.take && (
               <p className="text-xs text-gray-500 italic line-clamp-1 flex-1">"{item.take}"</p>
             )}

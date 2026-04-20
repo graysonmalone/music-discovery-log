@@ -4,19 +4,13 @@ import { itunesIdFromEntry } from '@/api/itunes'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getEntry, updateEntry, deleteEntry } from '@/api/collection'
 import { ArtworkImage } from '@/components/ArtworkImage'
-import { TagBadge } from '@/components/TagBadge'
+import { TagBadges } from '@/components/TagBadge'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useTop3 } from '@/context/Top3Context'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { TagCheckboxes } from '@/components/TagBadge'
 
 function DetailSkeleton() {
   return (
@@ -42,7 +36,7 @@ export function CollectionDetailPage() {
   const { isInTop3, add: addToTop3, remove: removeFromTop3 } = useTop3()
 
   const [editing, setEditing] = useState(false)
-  const [tag, setTag] = useState('')
+  const [tags, setTags] = useState([])
   const [take, setTake] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(false)
 
@@ -73,13 +67,13 @@ export function CollectionDetailPage() {
   })
 
   function startEdit() {
-    setTag(entry.tag)
+    setTags(entry.tags?.length ? entry.tags : [entry.tag])
     setTake(entry.take ?? '')
     setEditing(true)
   }
 
   function handleSave() {
-    updateMutation.mutate({ tag, take: take || null })
+    updateMutation.mutate({ tags, take: take || null })
   }
 
   if (isLoading) return <DetailSkeleton />
@@ -121,8 +115,8 @@ export function CollectionDetailPage() {
             <p className="text-lg text-gray-400 mb-3">{entry.artist_name}</p>
           )}
 
-          <div className="flex items-center gap-2 mb-6">
-            <TagBadge tag={entry.tag} />
+          <div className="flex items-center gap-2 mb-6 flex-wrap">
+            <TagBadges tags={entry.tags} tag={entry.tag} />
             <span className="text-xs text-gray-600 capitalize">{entry.entity_type}</span>
           </div>
 
@@ -208,18 +202,8 @@ export function CollectionDetailPage() {
           ) : (
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label className="text-gray-300">Tag</Label>
-                <Select value={tag} onValueChange={setTag}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="loved" className="text-white">Loved</SelectItem>
-                    <SelectItem value="want_to_listen" className="text-white">Want to Listen</SelectItem>
-                    <SelectItem value="overrated" className="text-white">Overrated</SelectItem>
-                    <SelectItem value="put_on" className="text-white">Put On</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-gray-300">Tags</Label>
+                <TagCheckboxes selected={tags} onChange={setTags} />
               </div>
 
               <div className="space-y-1.5">

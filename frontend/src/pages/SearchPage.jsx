@@ -4,16 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { searchItunes, getRandomSong } from '@/api/itunes'
 import { createEntry, getCollection } from '@/api/collection'
 import { ArtworkImage } from '@/components/ArtworkImage'
+import { TagCheckboxes } from '@/components/TagBadge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { ErrorMessage } from '@/components/ErrorMessage'
 
 const TYPES = [
@@ -129,7 +123,7 @@ export function SearchPage() {
   const [randomLoading, setRandomLoading] = useState(false)
 
   const [savingId, setSavingId] = useState(null)
-  const [saveTag, setSaveTag] = useState('loved')
+  const [saveTags, setSaveTags] = useState(['loved'])
   const [saveTake, setSaveTake] = useState('')
   const [savedIds, setSavedIds] = useState(new Set())
   const [activeClassicsTab, setActiveClassicsTab] = useState('artists')
@@ -178,7 +172,7 @@ export function SearchPage() {
       setSavedIds((prev) => new Set(prev).add(variables.musicbrainz_id.replace('itunes-', '')))
       setSavingId(null)
       setSaveTake('')
-      setSaveTag('loved')
+      setSaveTags(['loved'])
       queryClient.invalidateQueries({ queryKey: ['collection'] })
     },
   })
@@ -211,7 +205,7 @@ export function SearchPage() {
       entity_type: result.entityType,
       name: result.isSong ? `${result.name} (${result.albumName ?? 'Single'})` : result.name,
       artist_name: result.artistName,
-      tag: saveTag,
+      tags: saveTags,
       take: saveTake || null,
     })
   }
@@ -328,7 +322,7 @@ export function SearchPage() {
                       {isSaved ? (
                         <span className="text-xs text-green-400">Saved ✓</span>
                       ) : (
-                        <button onClick={() => { setSavingId(result.id); setSaveTag('loved'); setSaveTake('') }} className="text-xs text-purple-400 hover:text-purple-300 transition-colors">
+                        <button onClick={() => { setSavingId(result.id); setSaveTags(['loved']); setSaveTake('') }} className="text-xs text-purple-400 hover:text-purple-300 transition-colors">
                           + Save to collection
                         </button>
                       )}
@@ -337,15 +331,7 @@ export function SearchPage() {
 
                   {isSavingThis && (
                     <div className="mt-2 space-y-2">
-                      <Select value={saveTag} onValueChange={setSaveTag}>
-                        <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7"><SelectValue /></SelectTrigger>
-                        <SelectContent className="bg-gray-800 border-gray-700">
-                          <SelectItem value="loved" className="text-white text-xs">Loved</SelectItem>
-                          <SelectItem value="want_to_listen" className="text-white text-xs">Want to Listen</SelectItem>
-                          <SelectItem value="overrated" className="text-white text-xs">Overrated</SelectItem>
-                          <SelectItem value="put_on" className="text-white text-xs">Put On</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <TagCheckboxes selected={saveTags} onChange={setSaveTags} />
                       <Textarea value={saveTake} onChange={(e) => setSaveTake(e.target.value)} placeholder="Your take… (optional)" rows={2} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-xs" />
                       <div className="flex gap-1">
                         <Button size="sm" onClick={() => handleSave(result)} disabled={saveMutation.isPending} className="bg-purple-600 hover:bg-purple-700 text-white text-xs h-7">{saveMutation.isPending ? 'Saving…' : 'Save'}</Button>

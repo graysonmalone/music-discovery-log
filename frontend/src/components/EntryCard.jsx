@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { TagBadge } from '@/components/TagBadge'
+import { TagBadges } from '@/components/TagBadge'
 import { ArtworkImage } from '@/components/ArtworkImage'
 
 export function EntryCard({ entry }) {
@@ -16,7 +16,7 @@ export function EntryCard({ entry }) {
             <p className="text-sm font-medium text-white group-hover:text-purple-400 transition-colors leading-snug line-clamp-1">
               {entry.name}
             </p>
-            <TagBadge tag={entry.tag} />
+            <TagBadges tags={entry.tags} tag={entry.tag} />
           </div>
           {entry.artist_name && (
             <p className="text-xs text-gray-400 line-clamp-1">{entry.artist_name}</p>

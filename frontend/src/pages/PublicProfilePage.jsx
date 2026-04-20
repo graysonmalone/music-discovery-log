@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getPublicProfile, followUser, unfollowUser, getFollowing, toggleLike, getUserCollection } from '@/api/social'
 import { ArtworkImage } from '@/components/ArtworkImage'
-import { TagBadge } from '@/components/TagBadge'
+import { TagBadges } from '@/components/TagBadge'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -217,7 +217,7 @@ export function PublicProfilePage() {
                       <p className="text-sm text-white truncate">{entry.name}</p>
                       {entry.artist_name && <p className="text-xs text-gray-500 truncate">{entry.artist_name}</p>}
                     </div>
-                    <TagBadge tag={entry.tag} />
+                    <TagBadges tags={entry.tags} tag={entry.tag} />
                   </div>
                 )
                 return detailPath ? (
@@ -252,7 +252,7 @@ export function PublicProfilePage() {
                       {entry.name}
                     </p>
                     <div className="mt-1 flex items-center justify-between">
-                      <TagBadge tag={entry.tag} />
+                      <TagBadges tags={entry.tags} tag={entry.tag} />
                       <LikeButton itemType="entry" itemId={entry.id} liked={entry.liked} likeCount={entry.like_count} />
                     </div>
                   </div>

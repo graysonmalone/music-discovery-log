@@ -10,6 +10,7 @@ const TAGS = [
   { value: 'loved', label: 'Loved' },
   { value: 'want_to_listen', label: 'Want to Listen' },
   { value: 'overrated', label: 'Overrated' },
+  { value: 'put_on', label: 'Put On' },
 ]
 
 const SORTS = [

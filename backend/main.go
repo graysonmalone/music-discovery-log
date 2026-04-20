@@ -119,9 +119,12 @@ func main() {
 		}
 	}
 
-	// Idempotent column additions to notifications
+	// Idempotent column additions
 	tryMigrate(conn, `ALTER TABLE notifications ADD COLUMN reference_id INT NULL`)
 	tryMigrate(conn, `ALTER TABLE notifications ADD COLUMN reference_type VARCHAR(50) NULL`)
+	tryMigrate(conn, `ALTER TABLE collection_entries ADD COLUMN tags TEXT NULL`)
+	// Populate tags from existing tag column for old entries
+	conn.Exec(`UPDATE collection_entries SET tags = JSON_ARRAY(tag) WHERE tags IS NULL`)
 
 	log.Println("Migrations complete")
 

@@ -32,6 +32,7 @@ type socialEntryResponse struct {
 	Name          string    `json:"name"`
 	ArtistName    *string   `json:"artist_name"`
 	Tag           string    `json:"tag"`
+	Tags          []string  `json:"tags"`
 	Take          *string   `json:"take"`
 	SavedAt       time.Time `json:"saved_at"`
 	LikeCount     int       `json:"like_count"`
@@ -78,11 +79,10 @@ func scanSocialEntry(row interface {
 	Scan(...interface{}) error
 }) (socialEntryResponse, error) {
 	var e socialEntryResponse
-	var artistName sql.NullString
-	var take sql.NullString
+	var artistName, tagsJSON, take sql.NullString
 	var liked int
 	err := row.Scan(&e.ID, &e.UserID, &e.MusicbrainzID, &e.EntityType, &e.Name,
-		&artistName, &e.Tag, &take, &e.SavedAt, &e.LikeCount, &liked, &e.CommentCount)
+		&artistName, &e.Tag, &tagsJSON, &take, &e.SavedAt, &e.LikeCount, &liked, &e.CommentCount)
 	if err != nil {
 		return e, err
 	}
@@ -93,12 +93,13 @@ func scanSocialEntry(row interface {
 		e.Take = &take.String
 	}
 	e.Liked = liked > 0
+	e.Tags = parseTags(tagsJSON, e.Tag)
 	return e, nil
 }
 
 const socialEntrySelect = `
 	ce.id, ce.user_id, ce.musicbrainz_id, ce.entity_type, ce.name,
-	ce.artist_name, ce.tag, ce.take, ce.saved_at,
+	ce.artist_name, ce.tag, ce.tags, ce.take, ce.saved_at,
 	(SELECT COUNT(*) FROM likes WHERE item_type='entry' AND item_id=ce.id) AS like_count,
 	(SELECT COUNT(*) FROM likes WHERE item_type='entry' AND item_id=ce.id AND user_id=?) AS liked,
 	(SELECT COUNT(*) FROM comments WHERE entry_id=ce.id) AS comment_count`
@@ -168,19 +169,14 @@ func (h *SocialHandler) GetPublicProfile(w http.ResponseWriter, r *http.Request)
 	}
 	user.CreatedAt = createdAt.Format(time.RFC3339)
 
-	// Tag counts
-	countRows, err := h.DB.QueryContext(r.Context(),
-		`SELECT tag, COUNT(*) FROM collection_entries WHERE user_id = ? GROUP BY tag`, targetID)
-	if err != nil {
-		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
-		return
-	}
-	defer countRows.Close()
+	// Tag counts (using JSON_CONTAINS to support multi-tag entries)
 	counts := tagCounts{}
-	for countRows.Next() {
-		var tag string
+	for _, tag := range []string{"loved", "want_to_listen", "overrated", "put_on"} {
 		var count int
-		countRows.Scan(&tag, &count)
+		h.DB.QueryRowContext(r.Context(),
+			`SELECT COUNT(*) FROM collection_entries
+			 WHERE user_id = ? AND JSON_CONTAINS(COALESCE(tags, JSON_ARRAY(tag)), JSON_QUOTE(?))`,
+			targetID, tag).Scan(&count)
 		switch tag {
 		case "loved":
 			counts.Loved = count

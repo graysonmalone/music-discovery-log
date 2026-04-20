@@ -17,8 +17,8 @@ func Setup(queries *db.Queries, conn *sql.DB, jwtSecret string) http.Handler {
 	r.Use(chimiddleware.Recoverer)
 
 	auth := &handlers.AuthHandler{Queries: queries, JWTSecret: jwtSecret}
-	collection := &handlers.CollectionHandler{Queries: queries}
-	profile := &handlers.ProfileHandler{Queries: queries}
+	collection := &handlers.CollectionHandler{Queries: queries, DB: conn}
+	profile := &handlers.ProfileHandler{Queries: queries, DB: conn}
 	social := &handlers.SocialHandler{DB: conn}
 	top3 := &handlers.Top3Handler{DB: conn}
 	authMiddleware := middleware.Auth(jwtSecret)

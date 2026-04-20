@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 
 type ProfileHandler struct {
 	Queries *db.Queries
+	DB      *sql.DB
 }
 
 type profileResponse struct {
@@ -47,24 +49,22 @@ func (h *ProfileHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := h.Queries.CountEntriesByTag(r.Context(), userID)
-	if err != nil {
-		log.Printf("count entries error: %v", err)
-		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
-		return
-	}
-
 	counts := tagCounts{}
-	for _, row := range rows {
-		switch row.Tag {
-		case db.CollectionEntriesTagLoved:
-			counts.Loved = int(row.Count)
-		case db.CollectionEntriesTagWantToListen:
-			counts.WantToListen = int(row.Count)
-		case db.CollectionEntriesTagOverrated:
-			counts.Overrated = int(row.Count)
-		case db.CollectionEntriesTagPutOn:
-			counts.PutOn = int(row.Count)
+	for _, tag := range []string{"loved", "want_to_listen", "overrated", "put_on"} {
+		var count int
+		h.DB.QueryRowContext(r.Context(),
+			`SELECT COUNT(*) FROM collection_entries
+			 WHERE user_id = ? AND JSON_CONTAINS(COALESCE(tags, JSON_ARRAY(tag)), JSON_QUOTE(?))`,
+			userID, tag).Scan(&count)
+		switch tag {
+		case "loved":
+			counts.Loved = count
+		case "want_to_listen":
+			counts.WantToListen = count
+		case "overrated":
+			counts.Overrated = count
+		case "put_on":
+			counts.PutOn = count
 		}
 	}
 
