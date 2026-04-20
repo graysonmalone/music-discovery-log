@@ -258,7 +258,7 @@ function StatBox({ label, value, color, onClick, active }) {
 }
 
 function TaggedEntriesPanel({ entries, tag, label, onClose }) {
-  const filtered = tag ? entries.filter(e => e.tag === tag) : entries
+  const filtered = tag ? entries.filter(e => (e.tags ?? [e.tag]).includes(tag)) : entries
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
@@ -280,7 +280,7 @@ function TaggedEntriesPanel({ entries, tag, label, onClose }) {
                 <p className="text-sm text-white truncate">{entry.name}</p>
                 {entry.artist_name && <p className="text-xs text-gray-500 truncate">{entry.artist_name}</p>}
               </div>
-              <TagBadge tag={entry.tag} />
+              <TagBadges tags={entry.tags} tag={entry.tag} />
             </Link>
           ))}
         </div>

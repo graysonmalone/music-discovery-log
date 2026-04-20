@@ -417,11 +417,10 @@ func (h *SocialHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var userName string
 		var e socialEntryResponse
-		var artistName sql.NullString
-		var take sql.NullString
+		var artistName, tagsJSON, take sql.NullString
 		var liked int
 		if err := rows.Scan(&userName, &e.ID, &e.UserID, &e.MusicbrainzID, &e.EntityType, &e.Name,
-			&artistName, &e.Tag, &take, &e.SavedAt, &e.LikeCount, &liked, &e.CommentCount); err != nil {
+			&artistName, &e.Tag, &tagsJSON, &take, &e.SavedAt, &e.LikeCount, &liked, &e.CommentCount); err != nil {
 			log.Printf("scan feed: %v", err)
 			continue
 		}
@@ -432,6 +431,7 @@ func (h *SocialHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 			e.Take = &take.String
 		}
 		e.Liked = liked > 0
+		e.Tags = parseTags(tagsJSON, e.Tag)
 		feed = append(feed, feedEntryResponse{socialEntryResponse: e, UserName: userName})
 	}
 	w.Header().Set("Content-Type", "application/json")
