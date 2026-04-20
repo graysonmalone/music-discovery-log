@@ -17,12 +17,6 @@ const TYPES = [
   { value: 'song', label: 'Songs' },
 ]
 
-const GENRES = [
-  'All Genres', 'Pop', 'Hip-Hop/Rap', 'Rock', 'R&B/Soul', 'Country',
-  'Electronic', 'Jazz', 'Classical', 'Latin', 'Alternative', 'Metal',
-  'Indie', 'Folk', 'Reggae', 'Blues',
-]
-
 
 const ALL_TIME = {
   artists: [
@@ -81,23 +75,6 @@ const ALL_TIME = {
   ],
 }
 
-const GENRE_SEARCH_TERMS = {
-  'Pop': 'pop music',
-  'Hip-Hop/Rap': 'hip hop rap',
-  'Rock': 'rock music',
-  'R&B/Soul': 'rnb soul',
-  'Country': 'country music',
-  'Electronic': 'electronic music',
-  'Jazz': 'jazz music',
-  'Classical': 'classical music',
-  'Latin': 'latin music',
-  'Alternative': 'alternative music',
-  'Metal': 'metal music',
-  'Indie': 'indie music',
-  'Folk': 'folk music',
-  'Reggae': 'reggae music',
-  'Blues': 'blues music',
-}
 
 function SearchSkeleton() {
   return (
@@ -147,7 +124,6 @@ export function SearchPage() {
 
   const [q, setQ] = useState(searchParams.get('q') || '')
   const [type, setType] = useState(searchParams.get('type') || 'all')
-  const [genre, setGenre] = useState('All Genres')
   const [submittedQ, setSubmittedQ] = useState(searchParams.get('q') || '')
   const [submittedType, setSubmittedType] = useState(searchParams.get('type') || 'all')
   const [searched, setSearched] = useState(!!searchParams.get('q'))
@@ -171,16 +147,6 @@ export function SearchPage() {
     }
   }, [searchParams])
 
-  // Auto-search when genre is selected
-  useEffect(() => {
-    if (genre === 'All Genres') return
-    const searchTerm = GENRE_SEARCH_TERMS[genre] ?? genre.toLowerCase()
-    setSubmittedQ(searchTerm)
-    setSubmittedType(type)
-    setSearched(true)
-    setSavingId(null)
-  }, [genre]) // eslint-disable-line react-hooks/exhaustive-deps
-
   const { data: rawResults = [], isLoading, error } = useQuery({
     queryKey: ['search', submittedQ, submittedType],
     queryFn: () => searchItunes(submittedQ, submittedType),
@@ -193,10 +159,6 @@ export function SearchPage() {
   })
 
   const collectionIds = new Set((collection ?? []).map(e => e.musicbrainz_id.replace('itunes-', '')))
-
-  // No client-side filtering — genre and decade are embedded directly in the search term
-  // so iTunes handles it. Client-side filtering was unreliable (only 15-20 results to filter from).
-  const results = rawResults
 
   const saveMutation = useMutation({
     mutationFn: (entry) => createEntry(entry),
@@ -288,30 +250,18 @@ export function SearchPage() {
           ))}
         </div>
 
-        <div className="flex gap-2 ml-auto">
-          <select
-            value={genre}
-            onChange={(e) => setGenre(e.target.value)}
-            className="bg-gray-800 border border-gray-700 text-gray-300 rounded-lg px-3 py-1.5 text-sm"
-          >
-            {GENRES.map(g => <option key={g}>{g}</option>)}
-          </select>
-        </div>
       </div>
 
       {isLoading && <SearchSkeleton />}
       {error && <ErrorMessage message="Search failed. Please try again." />}
-      {searched && !isLoading && !error && results.length === 0 && rawResults.length > 0 && (
-        <p className="text-gray-500 text-center py-8">No results match the selected filters.</p>
-      )}
       {searched && !isLoading && !error && rawResults.length === 0 && (
         <p className="text-gray-500 text-center py-8">No results found for "{submittedQ}".</p>
       )}
 
       {/* Search results */}
-      {results.length > 0 && (
+      {rawResults.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-12">
-          {results.map((result) => {
+          {rawResults.map((result) => {
             const isSaved = savedIds.has(result.id) || collectionIds.has(result.id)
             const isSavingThis = savingId === result.id
             const detailPath = result.entityType === 'artist'
