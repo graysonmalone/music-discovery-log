@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { searchItunes, getRandomSong } from '@/api/itunes'
@@ -65,6 +65,24 @@ const ALL_TIME = {
     { name: 'I Will Always Love You', sub: 'Whitney Houston', query: 'I Will Always Love You Whitney Houston', type: 'song' },
     { name: 'Purple Haze', sub: 'Jimi Hendrix', query: 'Purple Haze Jimi Hendrix', type: 'song' },
   ],
+}
+
+const GENRE_SEARCH_TERMS = {
+  'Pop': 'pop music',
+  'Hip-Hop/Rap': 'hip hop rap',
+  'Rock': 'rock music',
+  'R&B/Soul': 'rnb soul',
+  'Country': 'country music',
+  'Electronic': 'electronic music',
+  'Jazz': 'jazz music',
+  'Classical': 'classical music',
+  'Latin': 'latin music',
+  'Alternative': 'alternative music',
+  'Metal': 'metal music',
+  'Indie': 'indie music',
+  'Folk': 'folk music',
+  'Reggae': 'reggae music',
+  'Blues': 'blues music',
 }
 
 function SearchSkeleton() {
@@ -140,6 +158,22 @@ export function SearchPage() {
     }
   }, [searchParams])
 
+  // Keep a ref to the current query so the filter effect can read it without being a dependency
+  const qRef = useRef(q)
+  useEffect(() => { qRef.current = q }, [q])
+
+  // Auto-search when genre or decade is changed
+  useEffect(() => {
+    const hasGenre = genre !== 'All Genres'
+    const hasDecade = decade !== ''
+    if (!hasGenre && !hasDecade) return
+    const searchTerm = qRef.current.trim() || (hasGenre ? GENRE_SEARCH_TERMS[genre] ?? genre.toLowerCase() : 'popular music')
+    setSubmittedQ(searchTerm)
+    setSubmittedType(type)
+    setSearched(true)
+    setSavingId(null)
+  }, [genre, decade]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const { data: rawResults = [], isLoading, error } = useQuery({
     queryKey: ['search', submittedQ, submittedType],
     queryFn: () => searchItunes(submittedQ, submittedType),
@@ -159,9 +193,9 @@ export function SearchPage() {
       const g = r.genre?.toLowerCase() ?? ''
       if (!g.includes(genre.toLowerCase().split('/')[0].toLowerCase())) return false
     }
-    if (decade) {
-      // We can't easily filter without making extra API calls for search results
-      // so we skip year filter here — it works better on album/song detail pages
+    if (decade && r.releaseYear) {
+      const start = parseInt(decade)
+      if (r.releaseYear < start || r.releaseYear >= start + 10) return false
     }
     return true
   })

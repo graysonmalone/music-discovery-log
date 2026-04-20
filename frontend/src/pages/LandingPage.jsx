@@ -37,10 +37,10 @@ export function LandingPage() {
       {/* Hero */}
       <div className="text-center mb-10">
         <h1 className="text-4xl sm:text-5xl font-bold text-white mb-3">
-          Your personal music journal
+          Discover music, share your taste
         </h1>
         <p className="text-gray-400 text-lg mb-8">
-          Search artists and albums, save them, tag them, and write your take.
+          Save artists and albums, tag what you love, follow friends, and see what the people you know are listening to.
         </p>
 
         <form onSubmit={handleSearch} className="flex gap-2 max-w-xl mx-auto">
@@ -59,7 +59,7 @@ export function LandingPage() {
         {!isAuthenticated && (
           <p className="mt-4 text-sm text-gray-500">
             <Link to="/register" className="text-purple-400 hover:text-purple-300">Create a free account</Link>
-            {' '}to save your discoveries.
+            {' '}to build your collection and connect with friends.
           </p>
         )}
       </div>
@@ -93,7 +93,7 @@ export function LandingPage() {
       {/* CTA for logged-out users */}
       {!isAuthenticated && (
         <div className="mt-12 text-center">
-          <p className="text-gray-400 mb-4">Ready to start logging your music?</p>
+          <p className="text-gray-400 mb-4">Ready to join the community?</p>
           <div className="flex gap-3 justify-center">
             <Link
               to="/register"

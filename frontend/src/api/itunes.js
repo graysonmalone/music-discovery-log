@@ -36,6 +36,7 @@ function normalizeAlbum(r) {
     entityType: 'release',
     artworkUrl: r.artworkUrl100?.replace('100x100bb', '500x500bb') ?? null,
     genre: r.primaryGenreName ?? null,
+    releaseYear: r.releaseDate ? new Date(r.releaseDate).getFullYear() : null,
   }
 }
 
@@ -49,6 +50,7 @@ function normalizeSong(r) {
     artworkUrl: r.artworkUrl100?.replace('100x100bb', '500x500bb') ?? null,
     genre: r.primaryGenreName ?? null,
     isSong: true,
+    releaseYear: r.releaseDate ? new Date(r.releaseDate).getFullYear() : null,
   }
 }
 
