@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { searchItunes, getRandomSong } from '@/api/itunes'
@@ -23,16 +23,6 @@ const GENRES = [
   'Indie', 'Folk', 'Reggae', 'Blues',
 ]
 
-const DECADES = [
-  { value: '', label: 'Any Year' },
-  { value: '2020', label: '2020s' },
-  { value: '2010', label: '2010s' },
-  { value: '2000', label: '2000s' },
-  { value: '1990', label: '1990s' },
-  { value: '1980', label: '1980s' },
-  { value: '1970', label: '1970s' },
-  { value: '1960', label: '1960s' },
-]
 
 const ALL_TIME = {
   artists: [
@@ -158,7 +148,6 @@ export function SearchPage() {
   const [q, setQ] = useState(searchParams.get('q') || '')
   const [type, setType] = useState(searchParams.get('type') || 'all')
   const [genre, setGenre] = useState('All Genres')
-  const [decade, setDecade] = useState('')
   const [submittedQ, setSubmittedQ] = useState(searchParams.get('q') || '')
   const [submittedType, setSubmittedType] = useState(searchParams.get('type') || 'all')
   const [searched, setSearched] = useState(!!searchParams.get('q'))
@@ -182,31 +171,15 @@ export function SearchPage() {
     }
   }, [searchParams])
 
-  // Keep a ref to the current query so the filter effect can read it without being a dependency
-  const qRef = useRef(q)
-  useEffect(() => { qRef.current = q }, [q])
-
-  // Auto-search when genre or decade is changed.
-  // We embed the decade directly into the search term so iTunes returns era-appropriate results
-  // rather than relying on unreliable client-side filtering.
+  // Auto-search when genre is selected
   useEffect(() => {
-    const hasGenre = genre !== 'All Genres'
-    const hasDecade = decade !== ''
-    if (!hasGenre && !hasDecade) return
-    let searchTerm
-    if (hasGenre && hasDecade) {
-      searchTerm = `${GENRE_SEARCH_TERMS[genre] ?? genre.toLowerCase()} ${decade}s`
-    } else if (hasGenre) {
-      searchTerm = GENRE_SEARCH_TERMS[genre] ?? genre.toLowerCase()
-    } else {
-      // decade only — use typed query if present, otherwise search the decade directly
-      searchTerm = qRef.current.trim() ? `${qRef.current.trim()} ${decade}s` : `${decade}s music`
-    }
+    if (genre === 'All Genres') return
+    const searchTerm = GENRE_SEARCH_TERMS[genre] ?? genre.toLowerCase()
     setSubmittedQ(searchTerm)
     setSubmittedType(type)
     setSearched(true)
     setSavingId(null)
-  }, [genre, decade]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [genre]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: rawResults = [], isLoading, error } = useQuery({
     queryKey: ['search', submittedQ, submittedType],
@@ -322,14 +295,6 @@ export function SearchPage() {
             className="bg-gray-800 border border-gray-700 text-gray-300 rounded-lg px-3 py-1.5 text-sm"
           >
             {GENRES.map(g => <option key={g}>{g}</option>)}
-          </select>
-
-          <select
-            value={decade}
-            onChange={(e) => setDecade(e.target.value)}
-            className="bg-gray-800 border border-gray-700 text-gray-300 rounded-lg px-3 py-1.5 text-sm"
-          >
-            {DECADES.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
           </select>
         </div>
       </div>
