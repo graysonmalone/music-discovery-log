@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"database/sql"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -10,7 +11,7 @@ import (
 	"github.com/graysonmalone/music-discovery-log/middleware"
 )
 
-func Setup(queries *db.Queries, jwtSecret string) http.Handler {
+func Setup(queries *db.Queries, conn *sql.DB, jwtSecret string) http.Handler {
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Logger)
 	r.Use(chimiddleware.Recoverer)
@@ -18,6 +19,7 @@ func Setup(queries *db.Queries, jwtSecret string) http.Handler {
 	auth := &handlers.AuthHandler{Queries: queries, JWTSecret: jwtSecret}
 	collection := &handlers.CollectionHandler{Queries: queries}
 	profile := &handlers.ProfileHandler{Queries: queries}
+	social := &handlers.SocialHandler{DB: conn}
 	authMiddleware := middleware.Auth(jwtSecret)
 
 	// Public routes
@@ -27,6 +29,8 @@ func Setup(queries *db.Queries, jwtSecret string) http.Handler {
 	// Protected routes
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware)
+
+		// Existing
 		r.Get("/api/search", handlers.Search)
 		r.Get("/api/collection", collection.List)
 		r.Post("/api/collection", collection.Create)
@@ -34,6 +38,17 @@ func Setup(queries *db.Queries, jwtSecret string) http.Handler {
 		r.Put("/api/collection/{id}", collection.Update)
 		r.Delete("/api/collection/{id}", collection.Delete)
 		r.Get("/api/profile", profile.Get)
+
+		// Social
+		r.Get("/api/users/search", social.SearchUsers)
+		r.Get("/api/users/{id}", social.GetPublicProfile)
+		r.Post("/api/follows/{id}", social.Follow)
+		r.Delete("/api/follows/{id}", social.Unfollow)
+		r.Get("/api/follows", social.GetFollowing)
+		r.Get("/api/followers", social.GetFollowers)
+		r.Get("/api/feed", social.GetFeed)
+		r.Get("/api/notifications", social.GetNotifications)
+		r.Post("/api/notifications/read", social.MarkNotificationsRead)
 	})
 
 	// Health check (public)

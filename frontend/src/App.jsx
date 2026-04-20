@@ -10,6 +10,8 @@ import { CollectionDetailPage } from '@/pages/CollectionDetailPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { ArtistPage } from '@/pages/ArtistPage'
 import { AlbumPage } from '@/pages/AlbumPage'
+import { SocialPage } from '@/pages/SocialPage'
+import { PublicProfilePage } from '@/pages/PublicProfilePage'
 
 function App() {
   return (
@@ -49,6 +51,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/social"
+            element={
+              <ProtectedRoute>
+                <SocialPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/users/:id"
+            element={
+              <ProtectedRoute>
+                <PublicProfilePage />
               </ProtectedRoute>
             }
           />

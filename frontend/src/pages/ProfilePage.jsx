@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { getProfile } from '@/api/profile'
 import { getCollection } from '@/api/collection'
+import { getFollowing, getFollowers } from '@/api/social'
 import { ArtworkImage } from '@/components/ArtworkImage'
 import { TagBadge } from '@/components/TagBadge'
 import { ErrorMessage } from '@/components/ErrorMessage'
@@ -33,6 +35,7 @@ function ProfileSkeleton() {
 
 export function ProfilePage() {
   const { top3, remove: removeFromTop3 } = useTop3()
+  const [socialPanel, setSocialPanel] = useState(null) // 'following' | 'followers' | null
 
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery({
     queryKey: ['profile'],
@@ -42,6 +45,16 @@ export function ProfilePage() {
   const { data: allEntries } = useQuery({
     queryKey: ['collection', ''],
     queryFn: () => getCollection(''),
+  })
+
+  const { data: following = [] } = useQuery({
+    queryKey: ['following'],
+    queryFn: getFollowing,
+  })
+
+  const { data: followers = [] } = useQuery({
+    queryKey: ['followers'],
+    queryFn: getFollowers,
   })
 
   if (profileLoading) return <ProfileSkeleton />
@@ -78,6 +91,48 @@ export function ProfilePage() {
           </p>
         </div>
       </div>
+
+      {/* Following / Followers */}
+      <div className="flex gap-4">
+        <button
+          onClick={() => setSocialPanel(p => p === 'following' ? null : 'following')}
+          className="text-sm text-gray-300 hover:text-white transition-colors"
+        >
+          <span className="font-semibold text-white">{following.length}</span> Following
+        </button>
+        <button
+          onClick={() => setSocialPanel(p => p === 'followers' ? null : 'followers')}
+          className="text-sm text-gray-300 hover:text-white transition-colors"
+        >
+          <span className="font-semibold text-white">{followers.length}</span> {followers.length === 1 ? 'Follower' : 'Followers'}
+        </button>
+      </div>
+
+      {socialPanel && (
+        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+            <p className="text-sm font-semibold text-white capitalize">{socialPanel}</p>
+            <button onClick={() => setSocialPanel(null)} className="text-gray-500 hover:text-white text-xs">Close</button>
+          </div>
+          {(socialPanel === 'following' ? following : followers).length === 0 ? (
+            <p className="text-gray-500 text-sm px-4 py-6 text-center">
+              {socialPanel === 'following' ? "You're not following anyone yet." : "No followers yet."}
+            </p>
+          ) : (
+            <div className="divide-y divide-gray-800">
+              {(socialPanel === 'following' ? following : followers).map(u => (
+                <Link
+                  key={u.id}
+                  to={`/users/${u.id}`}
+                  className="flex items-center px-4 py-3 hover:bg-gray-800/50 transition-colors"
+                >
+                  <span className="text-sm text-white hover:text-purple-400 transition-colors">{u.name}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
