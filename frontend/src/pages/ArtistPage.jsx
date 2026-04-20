@@ -107,7 +107,7 @@ export function ArtistPage() {
                   entity_type: 'artist',
                   name: artistName,
                   artist_name: null,
-                  tag: 'loved',
+                  tags: ['loved'],
                   take: null,
                 })}
                 disabled={saveMutation.isPending || saveMutation.isSuccess}
@@ -168,7 +168,7 @@ export function ArtistPage() {
                     entity_type: 'release',
                     name: `${song.trackName} (${song.collectionName})`,
                     artist_name: artistName,
-                    tag: 'loved',
+                    tags: ['loved'],
                     take: null,
                   })}
                   className="text-xs text-purple-400 hover:text-purple-300 opacity-0 group-hover:opacity-100 transition-all shrink-0 ml-2"

@@ -114,7 +114,7 @@ export function AlbumPage() {
                   entity_type: 'release',
                   name: album.collectionName,
                   artist_name: album.artistName,
-                  tag: 'loved',
+                  tags: ['loved'],
                   take: null,
                 })}
                 disabled={saveMutation.isPending || saveMutation.isSuccess}
@@ -165,7 +165,7 @@ export function AlbumPage() {
                 entity_type: 'release',
                 name: `${track.trackName} (${album.collectionName})`,
                 artist_name: track.artistName,
-                tag: 'loved',
+                tags: ['loved'],
                 take: null,
               })}
               className="text-xs text-purple-400 hover:text-purple-300 opacity-0 group-hover:opacity-100 transition-all shrink-0"
