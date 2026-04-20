@@ -193,9 +193,15 @@ export function SearchPage() {
     const hasGenre = genre !== 'All Genres'
     const hasDecade = decade !== ''
     if (!hasGenre && !hasDecade) return
-    const genreTerm = hasGenre ? (GENRE_SEARCH_TERMS[genre] ?? genre.toLowerCase()) : (qRef.current.trim() || 'popular music')
-    const decadeSuffix = hasDecade ? ` ${decade}s` : ''
-    const searchTerm = genreTerm + decadeSuffix
+    let searchTerm
+    if (hasGenre && hasDecade) {
+      searchTerm = `${GENRE_SEARCH_TERMS[genre] ?? genre.toLowerCase()} ${decade}s`
+    } else if (hasGenre) {
+      searchTerm = GENRE_SEARCH_TERMS[genre] ?? genre.toLowerCase()
+    } else {
+      // decade only — use typed query if present, otherwise search the decade directly
+      searchTerm = qRef.current.trim() ? `${qRef.current.trim()} ${decade}s` : `${decade}s music`
+    }
     setSubmittedQ(searchTerm)
     setSubmittedType(type)
     setSearched(true)
