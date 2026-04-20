@@ -69,9 +69,9 @@ export function NavBar() {
   return (
     <nav className="border-b border-gray-800 bg-gray-950 px-6 py-3">
       <div className="mx-auto flex max-w-5xl items-center justify-between">
-        <Link to="/" className="flex items-baseline gap-2">
+        <Link to="/" className="flex flex-col leading-tight">
           <span className="text-lg font-bold text-white hover:text-purple-400 transition-colors">Resonate</span>
-          <span className="text-xs text-gray-500 hidden sm:inline">Social Music Platform</span>
+          <span className="text-xs text-gray-500">Social Music Platform</span>
         </Link>
 
         <div className="flex items-center gap-4">

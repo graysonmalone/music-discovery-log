@@ -44,6 +44,14 @@ const ALL_TIME = {
     { name: 'Whitney Houston', sub: 'R&B', query: 'Whitney Houston' },
     { name: 'Eminem', sub: 'Hip-Hop', query: 'Eminem' },
     { name: 'Beyoncé', sub: 'Pop/R&B', query: 'Beyoncé' },
+    { name: 'Bob Dylan', sub: 'Folk/Rock', query: 'Bob Dylan' },
+    { name: 'Prince', sub: 'Pop/R&B', query: 'Prince artist' },
+    { name: 'David Bowie', sub: 'Rock', query: 'David Bowie' },
+    { name: 'Stevie Wonder', sub: 'R&B/Soul', query: 'Stevie Wonder' },
+    { name: 'Marvin Gaye', sub: 'R&B/Soul', query: 'Marvin Gaye' },
+    { name: 'Aretha Franklin', sub: 'Soul', query: 'Aretha Franklin' },
+    { name: 'Bruce Springsteen', sub: 'Rock', query: 'Bruce Springsteen' },
+    { name: 'Madonna', sub: 'Pop', query: 'Madonna' },
   ],
   albums: [
     { name: 'Thriller', sub: 'Michael Jackson · 1982', query: 'Thriller Michael Jackson', type: 'album' },
@@ -54,6 +62,14 @@ const ALL_TIME = {
     { name: 'Purple Rain', sub: 'Prince · 1984', query: 'Purple Rain Prince', type: 'album' },
     { name: 'The Miseducation of Lauryn Hill', sub: 'Lauryn Hill · 1998', query: 'Miseducation Lauryn Hill', type: 'album' },
     { name: 'Nevermind', sub: 'Nirvana · 1991', query: 'Nevermind Nirvana', type: 'album' },
+    { name: 'Songs in the Key of Life', sub: 'Stevie Wonder · 1976', query: 'Songs in the Key of Life Stevie Wonder', type: 'album' },
+    { name: 'What\'s Going On', sub: 'Marvin Gaye · 1971', query: "What's Going On Marvin Gaye album", type: 'album' },
+    { name: 'Kind of Blue', sub: 'Miles Davis · 1959', query: 'Kind of Blue Miles Davis', type: 'album' },
+    { name: 'Born to Run', sub: 'Bruce Springsteen · 1975', query: 'Born to Run Bruce Springsteen', type: 'album' },
+    { name: 'Appetite for Destruction', sub: "Guns N' Roses · 1987", query: 'Appetite for Destruction Guns N Roses', type: 'album' },
+    { name: 'Blonde on Blonde', sub: 'Bob Dylan · 1966', query: 'Blonde on Blonde Bob Dylan', type: 'album' },
+    { name: 'Led Zeppelin IV', sub: 'Led Zeppelin · 1971', query: 'Led Zeppelin IV', type: 'album' },
+    { name: 'I Never Loved a Man the Way I Love You', sub: 'Aretha Franklin · 1967', query: 'I Never Loved a Man Aretha Franklin', type: 'album' },
   ],
   songs: [
     { name: 'Bohemian Rhapsody', sub: 'Queen', query: 'Bohemian Rhapsody Queen', type: 'song' },
@@ -64,6 +80,14 @@ const ALL_TIME = {
     { name: 'What\'s Going On', sub: 'Marvin Gaye', query: "What's Going On Marvin Gaye", type: 'song' },
     { name: 'I Will Always Love You', sub: 'Whitney Houston', query: 'I Will Always Love You Whitney Houston', type: 'song' },
     { name: 'Purple Haze', sub: 'Jimi Hendrix', query: 'Purple Haze Jimi Hendrix', type: 'song' },
+    { name: 'Yesterday', sub: 'The Beatles', query: 'Yesterday The Beatles', type: 'song' },
+    { name: 'Respect', sub: 'Aretha Franklin', query: 'Respect Aretha Franklin', type: 'song' },
+    { name: 'Johnny B. Goode', sub: 'Chuck Berry', query: 'Johnny B Goode Chuck Berry', type: 'song' },
+    { name: 'Like a Rolling Stone', sub: 'Bob Dylan', query: 'Like a Rolling Stone Bob Dylan', type: 'song' },
+    { name: 'Superstition', sub: 'Stevie Wonder', query: 'Superstition Stevie Wonder', type: 'song' },
+    { name: 'Good Vibrations', sub: 'The Beach Boys', query: 'Good Vibrations Beach Boys', type: 'song' },
+    { name: 'Every Breath You Take', sub: 'The Police', query: 'Every Breath You Take The Police', type: 'song' },
+    { name: 'Stairway to Heaven', sub: 'Led Zeppelin', query: 'Stairway to Heaven Led Zeppelin', type: 'song' },
   ],
 }
 
@@ -187,12 +211,18 @@ export function SearchPage() {
 
   const collectionIds = new Set((collection ?? []).map(e => e.musicbrainz_id.replace('itunes-', '')))
 
-  // Apply client-side filters
+  // Apply client-side filters.
+  // Genre filter only runs when the user typed their own query (if the search was auto-triggered
+  // by genre selection, the search term itself is already genre-specific — no need to re-filter).
+  // It also skips items with no genre metadata (e.g. artists).
+  const userTypedQuery = q.trim() !== ''
   const results = rawResults.filter(r => {
-    if (genre !== 'All Genres') {
-      const g = r.genre?.toLowerCase() ?? ''
-      if (!g.includes(genre.toLowerCase().split('/')[0].toLowerCase())) return false
+    if (genre !== 'All Genres' && userTypedQuery && r.genre) {
+      const g = r.genre.toLowerCase()
+      const genreKey = genre.toLowerCase().split('/')[0].split('&')[0].trim()
+      if (!g.includes(genreKey)) return false
     }
+    // Decade: only filter items that have release year data
     if (decade && r.releaseYear) {
       const start = parseInt(decade)
       if (r.releaseYear < start || r.releaseYear >= start + 10) return false

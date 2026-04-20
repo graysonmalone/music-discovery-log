@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { Input } from '@/components/ui/input'
@@ -6,21 +6,46 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { ArtworkImage } from '@/components/ArtworkImage'
 import { cn } from '@/lib/utils'
 
-const FEATURED = [
+const ALL_TRENDING = [
   { name: 'Kendrick Lamar', sub: 'Hip-Hop', query: 'Kendrick Lamar', type: 'artist', artistName: null },
   { name: 'Sabrina Carpenter', sub: 'Pop', query: 'Sabrina Carpenter', type: 'artist', artistName: null },
   { name: 'Chappell Roan', sub: 'Pop', query: 'Chappell Roan', type: 'artist', artistName: null },
   { name: 'Tyler, the Creator', sub: 'Hip-Hop', query: 'Tyler the Creator', type: 'artist', artistName: null },
+  { name: 'Drake', sub: 'Hip-Hop', query: 'Drake', type: 'artist', artistName: null },
+  { name: 'Taylor Swift', sub: 'Pop', query: 'Taylor Swift', type: 'artist', artistName: null },
+  { name: 'SZA', sub: 'R&B', query: 'SZA', type: 'artist', artistName: null },
+  { name: 'Bad Bunny', sub: 'Latin', query: 'Bad Bunny', type: 'artist', artistName: null },
+  { name: 'Billie Eilish', sub: 'Pop/Alternative', query: 'Billie Eilish', type: 'artist', artistName: null },
+  { name: 'The Weeknd', sub: 'R&B', query: 'The Weeknd', type: 'artist', artistName: null },
+  { name: 'Olivia Rodrigo', sub: 'Pop/Rock', query: 'Olivia Rodrigo', type: 'artist', artistName: null },
+  { name: 'Post Malone', sub: 'Hip-Hop/Pop', query: 'Post Malone', type: 'artist', artistName: null },
+  { name: 'Doja Cat', sub: 'Pop/Hip-Hop', query: 'Doja Cat', type: 'artist', artistName: null },
+  { name: 'J. Cole', sub: 'Hip-Hop', query: 'J Cole', type: 'artist', artistName: null },
+  { name: 'Ariana Grande', sub: 'Pop', query: 'Ariana Grande', type: 'artist', artistName: null },
+  { name: 'Harry Styles', sub: 'Pop/Rock', query: 'Harry Styles', type: 'artist', artistName: null },
   { name: 'Short n\'Sweet', sub: 'Sabrina Carpenter', query: 'Short n Sweet Sabrina Carpenter', type: 'release', artistName: 'Sabrina Carpenter' },
   { name: 'GNX', sub: 'Kendrick Lamar', query: 'GNX Kendrick Lamar', type: 'release', artistName: 'Kendrick Lamar' },
-  { name: 'Midwest Princess', sub: 'Chappell Roan', query: 'Rise Fall Midwest Princess Chappell Roan', type: 'release', artistName: 'Chappell Roan' },
+  { name: 'The Rise and Fall of a Midwest Princess', sub: 'Chappell Roan', query: 'Rise Fall Midwest Princess Chappell Roan', type: 'release', artistName: 'Chappell Roan' },
   { name: 'Chromakopia', sub: 'Tyler, the Creator', query: 'Chromakopia Tyler Creator', type: 'release', artistName: 'Tyler, the Creator' },
+  { name: 'Midnights', sub: 'Taylor Swift', query: 'Midnights Taylor Swift', type: 'release', artistName: 'Taylor Swift' },
+  { name: 'SOS', sub: 'SZA', query: 'SOS SZA', type: 'release', artistName: 'SZA' },
+  { name: 'Un Verano Sin Ti', sub: 'Bad Bunny', query: 'Un Verano Sin Ti Bad Bunny', type: 'release', artistName: 'Bad Bunny' },
+  { name: 'After Hours', sub: 'The Weeknd', query: 'After Hours The Weeknd', type: 'release', artistName: 'The Weeknd' },
+  { name: 'GUTS', sub: 'Olivia Rodrigo', query: 'GUTS Olivia Rodrigo', type: 'release', artistName: 'Olivia Rodrigo' },
+  { name: 'Hit Me Hard and Soft', sub: 'Billie Eilish', query: 'Hit Me Hard and Soft Billie Eilish', type: 'release', artistName: 'Billie Eilish' },
+  { name: 'Austin', sub: 'Post Malone', query: 'Austin Post Malone', type: 'release', artistName: 'Post Malone' },
+  { name: 'Scarlet', sub: 'Doja Cat', query: 'Scarlet Doja Cat', type: 'release', artistName: 'Doja Cat' },
 ]
 
 export function LandingPage() {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [q, setQ] = useState('')
+
+  // Shuffle and pick 16 random trending items on each page load
+  const trending = useMemo(() => {
+    return [...ALL_TRENDING].sort(() => Math.random() - 0.5).slice(0, 16)
+  }, [])
 
   function handleSearch(e) {
     e.preventDefault()
@@ -68,7 +93,7 @@ export function LandingPage() {
       <div>
         <h2 className="text-lg font-semibold text-white mb-4">Trending now</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {FEATURED.map((item) => (
+          {trending.map((item) => (
             <button
               key={item.name}
               onClick={() => handleFeaturedClick(item)}

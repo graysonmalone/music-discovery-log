@@ -71,8 +71,8 @@ export async function searchItunes(q, type = 'all') {
   }
 
   const [artistData, albumData] = await Promise.all([
-    itunesFetch({ term: q, entity: 'musicArtist', media: 'music', limit: 6 }),
-    itunesFetch({ term: q, entity: 'album', media: 'music', limit: 6 }),
+    itunesFetch({ term: q, entity: 'musicArtist', media: 'music', limit: 15 }),
+    itunesFetch({ term: q, entity: 'album', media: 'music', limit: 15 }),
   ])
 
   const artists = (artistData.results ?? []).map(normalizeArtist)
