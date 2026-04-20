@@ -41,6 +41,7 @@ func Setup(queries *db.Queries, conn *sql.DB, jwtSecret string) http.Handler {
 
 		// Profile
 		r.Get("/api/profile", profile.Get)
+		r.Put("/api/profile", profile.UpdateName)
 
 		// Top 3
 		r.Get("/api/top3", top3.GetTop3)

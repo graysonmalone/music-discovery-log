@@ -35,6 +35,36 @@ type tagCounts struct {
 	PutOn        int `json:"put_on"`
 }
 
+func (h *ProfileHandler) UpdateName(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r)
+	if !ok {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || len(req.Name) == 0 {
+		http.Error(w, `{"error":"invalid request"}`, http.StatusBadRequest)
+		return
+	}
+	if len(req.Name) > 100 {
+		http.Error(w, `{"error":"name too long"}`, http.StatusBadRequest)
+		return
+	}
+
+	_, err := h.DB.ExecContext(r.Context(), `UPDATE users SET name = ? WHERE id = ?`, req.Name, userID)
+	if err != nil {
+		log.Printf("update name error: %v", err)
+		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"name": req.Name})
+}
+
 func (h *ProfileHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r)
 	if !ok {
