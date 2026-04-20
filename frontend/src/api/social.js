@@ -44,3 +44,23 @@ export async function markNotificationsRead() {
   const { data } = await client.post('/notifications/read')
   return data
 }
+
+export async function toggleLike(itemType, itemId) {
+  const { data } = await client.post('/like', { item_type: itemType, item_id: itemId })
+  return data // { liked, like_count }
+}
+
+export async function getComments(entryId) {
+  const { data } = await client.get(`/entries/${entryId}/comments`)
+  return data
+}
+
+export async function createComment(entryId, content) {
+  const { data } = await client.post(`/entries/${entryId}/comments`, { content })
+  return data
+}
+
+export async function deleteComment(commentId) {
+  const { data } = await client.delete(`/comments/${commentId}`)
+  return data
+}

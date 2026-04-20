@@ -1,33 +1,42 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { getTop3, addTop3, removeTop3 } from '@/api/top3'
+import { useAuth } from '@/hooks/useAuth'
 
 const Top3Context = createContext(null)
-const STORAGE_KEY = 'mdl-top3'
 
 export function Top3Provider({ children }) {
-  const [top3, setTop3] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [] }
-    catch { return [] }
+  const { isAuthenticated } = useAuth()
+  const queryClient = useQueryClient()
+
+  const { data: top3 = [] } = useQuery({
+    queryKey: ['top3'],
+    queryFn: getTop3,
+    enabled: isAuthenticated,
+  })
+
+  const addMutation = useMutation({
+    mutationFn: addTop3,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['top3'] }),
+  })
+
+  const removeMutation = useMutation({
+    mutationFn: removeTop3,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['top3'] }),
   })
 
   function add(item) {
-    setTop3(prev => {
-      if (prev.length >= 3 || prev.some(p => p.id === item.id)) return prev
-      const next = [...prev, item]
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      return next
-    })
+    // item = { id (iTunes ID), entityType, name, artworkUrl, artistName }
+    if (top3.length >= 3 || isInTop3(item.id)) return
+    addMutation.mutate(item)
   }
 
-  function remove(id) {
-    setTop3(prev => {
-      const next = prev.filter(p => p.id !== id)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      return next
-    })
+  function remove(itunesId) {
+    removeMutation.mutate(itunesId)
   }
 
-  function isInTop3(id) {
-    return top3.some(p => p.id === id)
+  function isInTop3(itunesId) {
+    return top3.some(t => t.itunes_id === String(itunesId))
   }
 
   return (

@@ -134,7 +134,9 @@ export function NavBar() {
                                 >
                                   {n.from_user_name}
                                 </Link>
-                                {' '}added you
+                                {n.type === 'follow' && ' added you'}
+                                {n.type === 'like' && (n.reference_name ? ` liked your "${n.reference_name}"` : ' liked your save')}
+                                {n.type === 'comment' && (n.reference_name ? ` commented on "${n.reference_name}"` : ' commented on your save')}
                               </p>
                               <div className="flex gap-2">
                                 <Link

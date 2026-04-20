@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getPublicProfile, followUser, unfollowUser, getFollowing } from '@/api/social'
+import { getPublicProfile, followUser, unfollowUser, getFollowing, toggleLike } from '@/api/social'
 import { ArtworkImage } from '@/components/ArtworkImage'
 import { TagBadge } from '@/components/TagBadge'
 import { ErrorMessage } from '@/components/ErrorMessage'
@@ -11,16 +11,40 @@ function ProfileSkeleton() {
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-6 animate-pulse">
       <div className="h-7 w-40 bg-gray-800 rounded" />
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-3">
-        <div className="h-4 w-24 bg-gray-800 rounded" />
         <div className="h-6 w-48 bg-gray-800 rounded" />
         <div className="h-3 w-32 bg-gray-800 rounded" />
       </div>
       <div className="grid grid-cols-3 gap-3">
-        {Array.from({ length: 6 }).map((_, i) => (
+        {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="bg-gray-900 rounded-lg aspect-square bg-gray-800" />
         ))}
       </div>
     </div>
+  )
+}
+
+function LikeButton({ itemType, itemId, liked, likeCount }) {
+  const queryClient = useQueryClient()
+  const mutation = useMutation({
+    mutationFn: () => toggleLike(itemType, itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['publicProfile'] })
+      queryClient.invalidateQueries({ queryKey: ['top3'] })
+    },
+  })
+
+  return (
+    <button
+      onClick={e => { e.preventDefault(); mutation.mutate() }}
+      className={`flex items-center gap-1 text-xs transition-colors ${
+        liked ? 'text-pink-400' : 'text-gray-500 hover:text-pink-400'
+      }`}
+    >
+      <svg className="w-3.5 h-3.5" fill={liked ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+      </svg>
+      {likeCount > 0 && <span>{likeCount}</span>}
+    </button>
   )
 }
 
@@ -30,7 +54,6 @@ export function PublicProfilePage() {
   const { user: currentUser } = useAuth()
   const queryClient = useQueryClient()
 
-  // If viewing your own profile, redirect
   if (currentUser && String(currentUser.id) === String(id)) {
     navigate('/profile', { replace: true })
     return null
@@ -73,8 +96,8 @@ export function PublicProfilePage() {
     </div>
   )
 
-  const { user, counts, recent } = profile
-  const total = counts.loved + counts.want_to_listen + counts.overrated
+  const { user, counts, recent, top3 = [] } = profile
+  const total = (counts.loved ?? 0) + (counts.want_to_listen ?? 0) + (counts.overrated ?? 0) + (counts.put_on ?? 0)
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-6 animate-fadein">
@@ -85,7 +108,7 @@ export function PublicProfilePage() {
         ← Back
       </button>
 
-      {/* User info + follow button */}
+      {/* User info + follow */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -113,14 +136,47 @@ export function PublicProfilePage() {
         </div>
       </div>
 
+      {/* Top 3 */}
+      {top3.length > 0 && (
+        <div>
+          <h2 className="text-white font-semibold mb-1">Top 3</h2>
+          <p className="text-xs text-gray-500 mb-3">{user.name}'s picks</p>
+          <div className="grid grid-cols-3 gap-3">
+            {top3.map(item => {
+              const path = item.entity_type === 'artist' ? `/artist/${item.itunes_id}` : `/album/${item.itunes_id}`
+              return (
+                <div key={item.itunes_id} className="bg-gray-900 border border-yellow-600/40 rounded-lg overflow-hidden relative">
+                  <Link to={path}>
+                    {item.artwork_url ? (
+                      <img src={item.artwork_url} alt={item.name} className="w-full aspect-square object-cover hover:opacity-90 transition-opacity" />
+                    ) : (
+                      <ArtworkImage name={item.name} artistName={item.artist_name} className="w-full aspect-square" />
+                    )}
+                  </Link>
+                  <div className="p-2">
+                    <p className="text-xs font-medium text-white line-clamp-1">{item.name}</p>
+                    {item.artist_name && <p className="text-xs text-gray-500 line-clamp-1">{item.artist_name}</p>}
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-xs text-yellow-500">{item.entity_type === 'artist' ? 'Artist' : 'Album'}</span>
+                      <LikeButton itemType="top3" itemId={item.id} liked={item.liked} likeCount={item.like_count} />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
         <h2 className="text-white font-semibold mb-4">Collection</h2>
         <div className="grid grid-cols-2 gap-3">
           <StatBox label="Total" value={total} color="text-white" />
-          <StatBox label="Loved" value={counts.loved} color="text-pink-400" />
-          <StatBox label="Want to Listen" value={counts.want_to_listen} color="text-blue-400" />
-          <StatBox label="Overrated" value={counts.overrated} color="text-amber-400" />
+          <StatBox label="Loved" value={counts.loved ?? 0} color="text-pink-400" />
+          <StatBox label="Want to Listen" value={counts.want_to_listen ?? 0} color="text-blue-400" />
+          <StatBox label="Overrated" value={counts.overrated ?? 0} color="text-amber-400" />
+          <StatBox label="Put On" value={counts.put_on ?? 0} color="text-teal-400" />
         </div>
       </div>
 
@@ -139,17 +195,14 @@ export function PublicProfilePage() {
 
               const card = (
                 <div className="bg-gray-900 border border-gray-800 hover:border-purple-700 rounded-lg overflow-hidden transition-colors group">
-                  <ArtworkImage
-                    name={entry.name}
-                    artistName={entry.artist_name}
-                    className="w-full aspect-square"
-                  />
+                  <ArtworkImage name={entry.name} artistName={entry.artist_name} className="w-full aspect-square" />
                   <div className="p-2">
                     <p className="text-xs font-medium text-white group-hover:text-purple-400 transition-colors line-clamp-1">
                       {entry.name}
                     </p>
-                    <div className="mt-1">
+                    <div className="mt-1 flex items-center justify-between">
                       <TagBadge tag={entry.tag} />
+                      <LikeButton itemType="entry" itemId={entry.id} liked={entry.liked} likeCount={entry.like_count} />
                     </div>
                   </div>
                 </div>

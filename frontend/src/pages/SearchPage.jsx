@@ -343,6 +343,7 @@ export function SearchPage() {
                           <SelectItem value="loved" className="text-white text-xs">Loved</SelectItem>
                           <SelectItem value="want_to_listen" className="text-white text-xs">Want to Listen</SelectItem>
                           <SelectItem value="overrated" className="text-white text-xs">Overrated</SelectItem>
+                          <SelectItem value="put_on" className="text-white text-xs">Put On</SelectItem>
                         </SelectContent>
                       </Select>
                       <Textarea value={saveTake} onChange={(e) => setSaveTake(e.target.value)} placeholder="Your take… (optional)" rows={2} className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-xs" />

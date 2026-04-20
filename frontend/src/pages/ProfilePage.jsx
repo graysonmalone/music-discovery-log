@@ -65,7 +65,7 @@ export function ProfilePage() {
   )
 
   const { user, counts } = profile
-  const total = counts.loved + counts.want_to_listen + counts.overrated
+  const total = counts.loved + counts.want_to_listen + counts.overrated + (counts.put_on ?? 0)
   const recent = allEntries ? [...allEntries].slice(0, 6) : []
 
   return (
@@ -138,10 +138,11 @@ export function ProfilePage() {
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
         <h2 className="text-white font-semibold mb-4">Collection</h2>
         <div className="grid grid-cols-2 gap-3">
-          <StatBox label="Total" value={total} color="text-white" />
+          <StatBox label="Total" value={counts.loved + counts.want_to_listen + counts.overrated + (counts.put_on ?? 0)} color="text-white" />
           <StatBox label="Loved" value={counts.loved} color="text-pink-400" />
           <StatBox label="Want to Listen" value={counts.want_to_listen} color="text-blue-400" />
           <StatBox label="Overrated" value={counts.overrated} color="text-amber-400" />
+          <StatBox label="Put On" value={counts.put_on ?? 0} color="text-teal-400" />
         </div>
       </div>
 
@@ -156,23 +157,28 @@ export function ProfilePage() {
         ) : (
           <div className="grid grid-cols-3 gap-3">
             {top3.map((item) => {
-              const path = item.entityType === 'artist' ? `/artist/${item.id}` : `/album/${item.id}`
+              const path = item.entity_type === 'artist' ? `/artist/${item.itunes_id}` : `/album/${item.itunes_id}`
               return (
-                <div key={item.id} className="bg-gray-900 border border-yellow-600/40 rounded-lg overflow-hidden group relative">
+                <div key={item.itunes_id} className="bg-gray-900 border border-yellow-600/40 rounded-lg overflow-hidden group relative">
                   <Link to={path}>
-                    {item.artworkUrl ? (
-                      <img src={item.artworkUrl} alt={item.name} className="w-full aspect-square object-cover group-hover:opacity-90 transition-opacity" />
+                    {item.artwork_url ? (
+                      <img src={item.artwork_url} alt={item.name} className="w-full aspect-square object-cover group-hover:opacity-90 transition-opacity" />
                     ) : (
-                      <ArtworkImage name={item.name} artistName={item.artistName} className="w-full aspect-square" />
+                      <ArtworkImage name={item.name} artistName={item.artist_name} className="w-full aspect-square" />
                     )}
                   </Link>
                   <div className="p-2">
                     <p className="text-xs font-medium text-white line-clamp-1">{item.name}</p>
-                    {item.artistName && <p className="text-xs text-gray-500 line-clamp-1">{item.artistName}</p>}
-                    <span className="text-xs text-yellow-500 capitalize">{item.entityType === 'artist' ? 'Artist' : 'Album'}</span>
+                    {item.artist_name && <p className="text-xs text-gray-500 line-clamp-1">{item.artist_name}</p>}
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="text-xs text-yellow-500">{item.entity_type === 'artist' ? 'Artist' : 'Album'}</span>
+                      {item.like_count > 0 && (
+                        <span className="text-xs text-gray-500">♥ {item.like_count}</span>
+                      )}
+                    </div>
                   </div>
                   <button
-                    onClick={() => removeFromTop3(item.id)}
+                    onClick={() => removeFromTop3(item.itunes_id)}
                     className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-red-900/80 text-gray-400 hover:text-white rounded-full w-6 h-6 flex items-center justify-center text-xs transition-colors"
                     title="Remove from Top 3"
                   >

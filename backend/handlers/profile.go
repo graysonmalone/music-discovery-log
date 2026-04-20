@@ -30,6 +30,7 @@ type tagCounts struct {
 	Loved        int `json:"loved"`
 	WantToListen int `json:"want_to_listen"`
 	Overrated    int `json:"overrated"`
+	PutOn        int `json:"put_on"`
 }
 
 func (h *ProfileHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +63,8 @@ func (h *ProfileHandler) Get(w http.ResponseWriter, r *http.Request) {
 			counts.WantToListen = int(row.Count)
 		case db.CollectionEntriesTagOverrated:
 			counts.Overrated = int(row.Count)
+		case db.CollectionEntriesTagPutOn:
+			counts.PutOn = int(row.Count)
 		}
 	}
 

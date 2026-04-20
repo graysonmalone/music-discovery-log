@@ -59,6 +59,7 @@ const (
 	CollectionEntriesTagLoved        CollectionEntriesTag = "loved"
 	CollectionEntriesTagWantToListen CollectionEntriesTag = "want_to_listen"
 	CollectionEntriesTagOverrated    CollectionEntriesTag = "overrated"
+	CollectionEntriesTagPutOn        CollectionEntriesTag = "put_on"
 )
 
 func (e *CollectionEntriesTag) Scan(src interface{}) error {

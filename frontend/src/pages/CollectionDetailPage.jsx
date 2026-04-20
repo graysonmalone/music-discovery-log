@@ -187,6 +187,7 @@ export function CollectionDetailPage() {
                     <SelectItem value="loved" className="text-white">Loved</SelectItem>
                     <SelectItem value="want_to_listen" className="text-white">Want to Listen</SelectItem>
                     <SelectItem value="overrated" className="text-white">Overrated</SelectItem>
+                    <SelectItem value="put_on" className="text-white">Put On</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
