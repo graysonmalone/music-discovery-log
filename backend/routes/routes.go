@@ -36,9 +36,6 @@ func Setup(queries *db.Queries, conn *sql.DB, jwtSecret string) http.Handler {
 		r.Put("/api/collection/{id}", collection.Update)
 		r.Delete("/api/collection/{id}", collection.Delete)
 
-		// Search proxy
-		r.Get("/api/search", handlers.Search)
-
 		// Profile
 		r.Get("/api/profile", profile.Get)
 		r.Put("/api/profile", profile.UpdateName)
