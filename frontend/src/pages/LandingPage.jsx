@@ -69,7 +69,9 @@ export function LandingPage() {
         </p>
 
         <form onSubmit={handleSearch} className="flex gap-2 max-w-xl mx-auto">
+          <label htmlFor="landing-search" className="sr-only">Search artists, albums, or songs</label>
           <Input
+            id="landing-search"
             type="text"
             placeholder="Search any artist, album, or song…"
             value={q}

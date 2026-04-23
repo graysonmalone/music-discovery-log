@@ -50,7 +50,7 @@ export function TagCheckboxes({ selected, onChange }) {
     }
   }
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2" role="group" aria-label="Tags">
       {ALL_TAGS.map(opt => {
         const active = selected.includes(opt.value)
         const style = active ? TAG_STYLES[opt.value] : 'bg-gray-800 text-gray-400 border-gray-700 hover:text-white'
@@ -59,6 +59,7 @@ export function TagCheckboxes({ selected, onChange }) {
             key={opt.value}
             type="button"
             onClick={() => toggle(opt.value)}
+            aria-pressed={active}
             className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors ${style}`}
           >
             {opt.label}

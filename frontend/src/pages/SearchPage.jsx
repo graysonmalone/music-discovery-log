@@ -211,7 +211,9 @@ export function SearchPage() {
       {/* Search bar + random */}
       <div className="flex gap-2 mb-4">
         <form onSubmit={handleSearch} className="flex gap-2 flex-1">
+          <label htmlFor="main-search" className="sr-only">Search music</label>
           <Input
+            id="main-search"
             type="text"
             placeholder="Search music…"
             value={q}

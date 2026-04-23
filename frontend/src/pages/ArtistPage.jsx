@@ -35,7 +35,7 @@ export function ArtistPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { top3, add: addToTop3, remove: removeFromTop3, isInTop3, isFull } = useTop3()
+  const { add: addToTop3, remove: removeFromTop3, isInTop3, isFull } = useTop3()
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['artist', id],
@@ -93,6 +93,10 @@ export function ArtistPage() {
             <p className="text-gray-400">{artist.primaryGenreName}</p>
           )}
           <p className="text-sm text-gray-600 mt-1">{albums.length} releases</p>
+
+          {saveMutation.isError && (
+            <p className="text-sm text-red-400 mt-3">Failed to save. Please try again.</p>
+          )}
 
           <div className="flex gap-2 mt-4">
             {isAlreadySaved ? (
@@ -171,6 +175,7 @@ export function ArtistPage() {
                     tags: ['loved'],
                     take: null,
                   })}
+                  aria-label={`Save ${song.trackName} to collection`}
                   className="text-xs text-purple-400 hover:text-purple-300 opacity-0 group-hover:opacity-100 transition-all shrink-0 ml-2"
                 >
                   + Save

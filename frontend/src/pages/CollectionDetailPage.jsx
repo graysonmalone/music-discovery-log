@@ -43,10 +43,6 @@ export function CollectionDetailPage() {
   const { data: entry, isLoading, error } = useQuery({
     queryKey: ['entry', id],
     queryFn: () => getEntry(id),
-    onSuccess: (data) => {
-      setTag(data.tag)
-      setTake(data.take ?? '')
-    },
   })
 
   const updateMutation = useMutation({

@@ -101,6 +101,10 @@ export function AlbumPage() {
             {totalMs > 0 && ` · ${formatDuration(totalMs)}`}
           </p>
 
+          {saveMutation.isError && (
+            <p className="text-sm text-red-400 mt-3">Failed to save. Please try again.</p>
+          )}
+
           <div className="flex gap-2 mt-4">
             {isAlreadySaved ? (
               <span className="text-sm text-green-400 flex items-center gap-1.5">
@@ -168,6 +172,7 @@ export function AlbumPage() {
                 tags: ['loved'],
                 take: null,
               })}
+              aria-label={`Save ${track.trackName} to collection`}
               className="text-xs text-purple-400 hover:text-purple-300 opacity-0 group-hover:opacity-100 transition-all shrink-0"
             >
               + Save
